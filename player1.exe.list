@@ -1,0 +1,2881 @@
+EMU8086 GENERATED LISTING. MACHINE CODE <- SOURCE.
+ 
+player1.exe -- emu8086 assembler version: 4.08  
+ 
+[ 11/01/19  --  04:49:19 AM ] 
+ 
+===================================================================================================
+[LINE]     LOC: MACHINE CODE                          SOURCE
+===================================================================================================
+ 
+[   1]        :                                       include DrawWithColour.INC
+[   2]        :                                       .MODEL LARGE
+[   3]        :                                       .STACK 64
+[   4]        :                                       
+[   5]        :                                       .DATA
+[   6]        :                                       ;-----------------------------------------------------------------------------------------------------
+[   7]        :                                       
+[   8]    0040: 00 02                                 SENDPOS DW 0200H  ;postion of the cursor to write sent data
+[   9]    0042: 00 0F                                 RECPOS DW 0F00H   ;position of the cursor to write received data
+[  10]    0044: 00                                    value db ?
+[  11]        :                                       
+[  12]    0045: 00                                    SentData   DB  ?
+[  13]    0046: 00                                    RecData    DB  ?
+[  14]    0047: 57 61 69 74 69 6E 67 20 66 6F 72 20   WaitInv    DB  'Waiting for other player response...$'
+                6F 74 68 65 72 20 70 6C 61 79 65 72 
+                20 72 65 73 70 6F 6E 73 65 2E 2E 2E 
+                24                                  
+[  15]    006C: 20 73 65 6E 74 20 79 6F 75 20 67 61   GameInv    DB  ' sent you game invitation$'
+                6D 65 20 69 6E 76 69 74 61 74 69 6F 
+                6E 24                               
+[  16]    0086: 20 73 65 6E 74 20 79 6F 75 20 63 68   ChatInv    DB  ' sent you chat invitation$'
+                61 74 20 69 6E 76 69 74 61 74 69 6F 
+                6E 24                               
+[  17]    00A0: 50 72 65 73 73 20 65 6E 74 65 72 20   AcceptInv  DB  'Press enter to accept invitation$'
+                74 6F 20 61 63 63 65 70 74 20 69 6E 
+                76 69 74 61 74 69 6F 6E 24          
+[  18]    00C1: 50 72 65 73 73 20 64 6F 77 6E 20 74   RefuseInv  DB  'Press down to return to main menu$'
+                6F 20 72 65 74 75 72 6E 20 74 6F 20 
+                6D 61 69 6E 20 6D 65 6E 75 24       
+[  19]        :                                       
+[  20]        :                                       
+[  21]        :                                       ;x1  ;y1   ;x2   ;y2   ;xm   ;ym
+[  22]    00E3: 00 00 00 00 00 00 00 00 00 00 00 00   Pl1Pos DW 6 DUP(?)
+                                                    
+[  23]    00EF: 00 00 00 00 00 00 00 00 00 00 00 00   Pl2Pos DW 6 DUP(?)
+                                                    
+[  24]        :                                       
+[  25]    00FB: 96 00 00 00 A0 00 0A 00 9B 00 0F 00   InitialPl1Pos DW 0096H,0000h,00A0H,000AH,009BH,000fh
+                                                    
+[  26]    0107: 96 00 A9 00 A0 00 B3 00 9B 00 A4 00   InitialPl2Pos DW 0096H,00A9h,00A0H,00B3H,009BH,00A4h
+                                                    
+[  27]        :                                       
+[  28]    0113: 00 00 00 00 00 00 00 00 00 00 00 00   BlockPosX dw 10 dup(?) ;to store the positions of blocks first  row(x1 of the up_left corner,we know the width and highet ) *height
+                00 00 00 00 00 00 00 00             
+[  29]        :                                       
+[  30]    0127: 00 00 00 00 00 00 00 00 00 00         CLRS1           DB  10 DUP(?)
+[  31]    0131: 0F 08 08 0F 08 0F 08 04 08 0F         INITIALCLRS1    DB  0FH , 8 , 8 , 0FH , 8 , 0FH , 8 , 4 , 8 , 0FH
+[  32]    013B: 00 00 00 00 00 00 00 00 00 00         CLRS21          DB  10 DUP(?)
+[  33]    0145: 0F 08 08 0F 08 0F 08 04 08 0F         INITIALCLRS21   DB  0FH , 8 , 8 , 0FH , 8 , 0FH , 8 , 4 , 8 , 0FH
+[  34]    014F: 00 00 00 00 00 00 00 00 00 00         CLRS22          DB  10 DUP(?)
+[  35]    0159: 08 0F 0F 08 04 08 08 0F 08 0F         INITIALCLRS22   DB  8 , 0FH , 0FH , 8 , 4 , 8 , 8 , 0FH , 8 , 0FH
+[  36]        :                                       
+[  37]        :                                       WIDTH EQU 28
+[  38]        :                                       HIGHT EQU 8
+[  39]        :                                       
+[  40]    0163: 00 00                                 Xpoint1  DW  ?
+[  41]    0165: 00 00                                 Xpoint2  DW  ?
+[  42]        :                                       
+[  43]    0167:                                       Plyr1 LABEL BYTE
+[  44]        :                                       
+[  45]    0167: 14                                    PL1SIZE DB 20      ;IN THE DOSBOS , WHEN THE USER ENTER A NAME WITH SIZE GREATER THAN OR EQUAL THE MAX SIZE
+[  46]        :                                       ;IT STOPS AND DOESN'T RESPOND TO ANY ACTION
+[  47]        :                                       ;SO I MADE THE MAX SIZE = 20 , NO ONE ENTER A USERNAME WITH SIZE GREATER THAN THAT ONE
+[  48]        :                                       ;I SUPPOSE THAT "_"
+[  49]    0168: 00                                    ACT1SIZE DB 0
+[  50]    0169: 0D 24 24 24 24 24 24 24 24 24 24 24   PL1NAME DB 0DH , 19 DUP('$')
+                24 24 24 24 24 24 24 24             
+[  51]        :                                       
+[  52]    017D:                                       Plyr2 LABEL BYTE
+[  53]        :                                       
+[  54]    017D: 14                                    PL2SIZE DB 20
+[  55]    017E: 00                                    ACT2SIZE DB 0
+[  56]    017F: 0D 24 24 24 24 24 24 24 24 24 24 24   PL2NAME DB 0DH , 19 DUP('$')
+                24 24 24 24 24 24 24 24             
+[  57]        :                                       
+[  58]    0193: 00 00                                 HEART1POS DW ?
+[  59]    0195: 00 00                                 HEART2POS DW ?
+[  60]        :                                       
+[  61]    0197: 00 00                                 SCORE1POS       DW      ?
+[  62]    0199: 00 00                                 SCORE2POS       DW      ?
+[  63]        :                                       
+[  64]    019B: 59 6F 75 72 20 4E 61 6D 65 3A 20 24   PLNAME_ DB 'Your Name : $'
+                                                    
+[  65]        :                                       
+[  66]    01A7: 57 61 69 74 69 6E 67 20 66 6F 72 20   WaitPl2  DB 'Waiting for Player2 to join...$'
+                50 6C 61 79 65 72 32 20 74 6F 20 6A 
+                6F 69 6E 2E 2E 2E 24                
+[  67]        :                                       
+[  68]    01C6: 03 00                                 Pl1Health DW 3
+[  69]    01C8: 03 00                                 Pl2Health DW 3
+[  70]        :                                       
+[  71]    01CA: 43 6F 6E 67 72 61 74 75 6C 61 74 69   PLWON  DB  'Congratulations!$Winner: $Loser: $'
+                6F 6E 73 21 24 57 69 6E 6E 65 72 3A 
+                20 24 4C 6F 73 65 72 3A 20 24       
+[  72]    01EC: 42 61 64 20 4C 75 63 6B 21 24 24 24   PLLOSE DB  'Bad Luck!$$$$$$$$Loser: $$Winner: $'
+                24 24 24 24 24 4C 6F 73 65 72 3A 20 
+                24 24 57 69 6E 6E 65 72 3A 20 24    
+[  73]        :                                       
+[  74]        :                                       ;start menu messages
+[  75]    020F: 45 6E 74 65 72 3A 20 73 65 6E 64 20   start db 'Enter: send a game invitation (:$ '
+                61 20 67 61 6D 65 20 69 6E 76 69 74 
+                61 74 69 6F 6E 20 28 3A 24 20       
+[  76]    0231: 43 3A 20 73 65 6E 64 20 61 20 63 68   chat db 'C: send a chatting invitation ^^$'
+                61 74 74 69 6E 67 20 69 6E 76 69 74 
+                61 74 69 6F 6E 20 5E 5E 24          
+[  77]    0252: 42 61 63 6B 53 70 61 63 65 3A 20 65   exitt db   'BackSpace: exit *_*$'
+                78 69 74 20 2A 5F 2A 24             
+[  78]    0266: 50 72 65 73 73 20 61 6E 79 20 6B 65   ENDText     DB  'Press any key to return to main menu$'
+                79 20 74 6F 20 72 65 74 75 72 6E 20 
+                74 6F 20 6D 61 69 6E 20 6D 65 6E 75 
+                24                                  
+[  79]    028B: 50 72 65 73 73 20 61 6E 79 20 6B 65   LVL2TEXT    DB  'Press any key to go to level 2$'
+                79 20 74 6F 20 67 6F 20 74 6F 20 6C 
+                65 76 65 6C 20 32 24                
+[  80]    02AA: 49 74 60 73 20 61 20 44 72 61 77 21   DRAWTEXT    DB  'It`s a Draw!'
+                                                    
+[  81]        :                                       
+[  82]    02B6: 01                                    LVLNO       DB  1
+[  83]    02B7: 00                                    PL1SCORE    DB  ?
+[  84]    02B8: 00                                    PL2SCORE    DB  ?
+[  85]        :                                       
+[  86]        :                                       ;-----------------------------------------------------------------------------------------------------
+[  87]        :                                       .code
+[  88]        :                                       
+[  89]    02C0:                                       MAIN proc far
+[  90]    02C0: B8 04 00                              MOV ax , @data
+[  91]    02C3: 8E D8                                 MOV ds ,ax
+[  92]        :                                       
+[  93]        :                                       ;initialization of ports
+[  94]    02C5: BA FB 03                              MOV DX,3FBH
+[  95]    02C8: B0 80                                 MOV AL,10000000B
+[  96]    02CA: EE                                    OUT DX,AL
+[  97]        :                                       
+[  98]    02CB: BA F8 03                              MOV DX,3F8H
+[  99]    02CE: B0 0C                                 MOV AL,0CH
+[ 100]    02D0: EE                                    OUT DX,AL
+[ 101]        :                                       
+[ 102]    02D1: BA F9 03                              MOV DX,3F9H
+[ 103]    02D4: B0 00                                 MOV AL,00h
+[ 104]    02D6: EE                                    OUT DX,AL
+[ 105]        :                                       
+[ 106]    02D7: BA FB 03                              MOV DX,3FBH
+[ 107]    02DA: B0 1B                                 MOV AL,00011011B
+[ 108]    02DC: EE                                    OUT DX, AL
+[ 109]        :                                       
+[ 110]        :                                       
+[ 111]        :                                       ;graphicAL mode
+[ 112]    02DD: B7 00                                 MOV BH, 0
+[ 113]    02DF: B4 00                                 MOV ah , 0
+[ 114]    02E1: B0 13                                 MOV AL , 13h
+[ 115]    02E3: CD 10                                 INT 10h
+[ 116]        :                                       
+[ 117]        :                                       ;Enter username
+[ 118]        :                                       
+[ 119]    02E5:                                       GetUser1:
+[ 120]        :                                       
+[ 121]    02E5: 80 3E 28 01 00                        CMP Act1Size, 0
+[ 122]    02EA: 74 02                                 JZ EnterUS1
+[ 123]    02EC: 75 05                                 JNZ WaitForConn
+[ 124]        :                                       
+[ 125]    02EE:                                       EnterUS1:
+[ 126]        :                                       
+[ 127]    02EE: E8 A3 0E                              CALL UserName1
+[ 128]    02F1: EB F2                                 JMP GetUser1
+[ 129]        :                                       
+[ 130]    02F3:                                       WaitForConn:
+[ 131]    02F3: E8 3F 0F                              CALL WaitPl2Connect
+[ 132]        :                                       ;Recieve Username 2
+[ 133]    02F6: E8 5E 0F                              CALL RecieveUserName2
+[ 134]        :                                       ;Send username1
+[ 135]    02F9: E8 88 0F                              CALL SendUserName1
+[ 136]        :                                       
+[ 137]        :                                       
+[ 138]    02FC:                                       MainMenu:
+[ 139]        :                                       
+[ 140]        :                                       
+[ 141]        :                                       ;INITAILZING ALL VARIABLES
+[ 142]    02FC: BE 00 00                              MOV SI , 0
+[ 143]    02FF: B9 06 00                              MOV CX , 6
+[ 144]    0302:                                       T:
+[ 145]        :                                       
+[ 146]    0302: 8B 84 BB 00                           MOV AX , InitialPl1Pos[SI]
+[ 147]    0306: 89 84 A3 00                           MOV Pl1Pos[SI] , AX
+[ 148]    030A: 8B 84 C7 00                           MOV AX , InitialPl2Pos[SI]
+[ 149]    030E: 89 84 AF 00                           MOV Pl2Pos[SI] , AX
+[ 150]    0312: 46                                    INC SI
+[ 151]    0313: 46                                    INC SI
+[ 152]        :                                       
+[ 153]    0314: E2 EC                                 LOOP T
+[ 154]        :                                       
+[ 155]    0316: B9 0A 00                              MOV CX , 10
+[ 156]    0319: BE 00 00                              MOV SI , 0
+[ 157]    031C:                                       T2:
+[ 158]        :                                       
+[ 159]    031C: 8A 84 F1 00                           MOV AL, INITIALCLRS1[SI]
+[ 160]    0320: 88 84 E7 00                           MOV CLRS1[SI] , AL
+[ 161]    0324: 8A 84 05 01                           MOV AL, INITIALCLRS21[SI]
+[ 162]    0328: 88 84 FB 00                           MOV CLRS21[SI], AL
+[ 163]    032C: 8A 84 19 01                           MOV AL, INITIALCLRS22[SI]
+[ 164]    0330: 88 84 0F 01                           MOV CLRS22[SI], AL
+[ 165]    0334: 46                                    INC SI
+[ 166]        :                                       
+[ 167]    0335: E2 E5                                 LOOP T2
+[ 168]        :                                       
+[ 169]    0337: C6 06 77 02 00                        MOV PL1SCORE, 0
+[ 170]    033C: C6 06 78 02 00                        MOV PL2SCORE, 0
+[ 171]    0341: C7 06 86 01 03 00                     MOV Pl1Health , 3
+[ 172]    0347: C7 06 88 01 03 00                     MOV Pl2Health , 3
+[ 173]    034D: C7 06 00 00 00 02                     MOV SendPos, 0200H
+[ 174]    0353: C7 06 02 00 00 0F                     Mov RecPos,  0F00H
+[ 175]        :                                       
+[ 176]    0359: C6 06 76 02 01                        MOV LVLNO, 1
+[ 177]        :                                       
+[ 178]        :                                       ;graphicAL mode
+[ 179]    035E: B7 00                                 MOV BH, 0
+[ 180]    0360: B4 00                                 MOV ah , 0
+[ 181]    0362: B0 13                                 MOV AL , 13h
+[ 182]    0364: CD 10                                 INT 10h
+[ 183]        :                                       
+[ 184]        :                                       
+[ 185]    0366:                                       GetInput:
+[ 186]        :                                       ;graphicAL mode
+[ 187]    0366: B7 00                                 MOV BH, 0
+[ 188]    0368: B4 00                                 MOV ah , 0
+[ 189]    036A: B0 13                                 MOV AL , 13h
+[ 190]    036C: CD 10                                 INT 10h
+[ 191]        :                                       
+[ 192]        :                                       ;moving cursor
+[ 193]    036E: B7 00                                 MOV BH, 0
+[ 194]    0370: B4 02                                 MOV AH, 2
+[ 195]    0372: B2 04                                 MOV DL, 4D
+[ 196]    0374: B6 0A                                 MOV DH, 10D
+[ 197]    0376: CD 10                                 INT 10H
+[ 198]        :                                       
+[ 199]    0378: 52                                    push dx
+[ 200]        :                                       
+[ 201]        :                                       ;printing messages
+[ 202]    0379: B4 09                                 mov ah , 9
+[ 203]    037B: BA CF 01                              lea dx , start
+[ 204]    037E: CD 21                                 int 21h
+[ 205]        :                                       
+[ 206]        :                                       
+[ 207]    0380: 5A                                    pop dx
+[ 208]        :                                       
+[ 209]        :                                       ;moving cursor one step down
+[ 210]    0381: 80 C6 02                              add dh,2
+[ 211]    0384: B7 00                                 MOV BH, 0
+[ 212]    0386: B4 02                                 MOV AH, 2
+[ 213]    0388: CD 10                                 INT 10H
+[ 214]        :                                       
+[ 215]    038A: 52                                    push dx
+[ 216]        :                                       
+[ 217]        :                                       ;printing message
+[ 218]        :                                       
+[ 219]    038B: B4 09                                 mov ah , 9
+[ 220]    038D: BA F1 01                              lea dx , chat
+[ 221]    0390: CD 21                                 int 21h
+[ 222]        :                                       
+[ 223]    0392: 5A                                    pop dx
+[ 224]        :                                       
+[ 225]        :                                       ;moving cursor one step down
+[ 226]    0393: 80 C6 02                              add dh,2
+[ 227]    0396: B7 00                                 MOV BH, 0
+[ 228]    0398: B4 02                                 MOV AH, 2
+[ 229]    039A: CD 10                                 INT 10H
+[ 230]        :                                       
+[ 231]        :                                       ;printing message
+[ 232]    039C: B4 09                                 mov ah , 9
+[ 233]    039E: BA 12 02                              lea dx , exitt
+[ 234]    03A1: CD 21                                 int 21h
+[ 235]        :                                       
+[ 236]        :                                       
+[ 237]        :                                       ;b7ut feha ay 7aga msh ha-check 3leha
+[ 238]    03A3: C6 06 05 00 3D                        MOV SentData, '='
+[ 239]    03A8: C6 06 06 00 3D                        MOV RecData,  '='
+[ 240]        :                                       
+[ 241]        :                                       ;Get key pressed(wait an input from keyboard)
+[ 242]    03AD: E8 54 0E                              CALL SendOrRec
+[ 243]        :                                       
+[ 244]    03B0: C6 06 76 02 01                        MOV LVLNO,1
+[ 245]        :                                       
+[ 246]        :                                       ;graphicAL mode
+[ 247]    03B5: B7 00                                 MOV BH, 0
+[ 248]    03B7: B4 00                                 MOV ah , 0
+[ 249]    03B9: B0 13                                 MOV AL , 13h
+[ 250]    03BB: CD 10                                 INT 10h
+[ 251]        :                                       
+[ 252]    03BD: 80 3E 05 00 1C                        cmp SentData, 1CH
+[ 253]    03C2: 75 03 E9 BE 00                        jz SendInv
+[ 254]        :                                       
+[ 255]    03C7: 80 3E 05 00 2E                        cmp SentData , 2Eh
+[ 256]    03CC: 74 28                                 jz SendInvChat
+[ 257]        :                                       
+[ 258]    03CE: 80 3E 05 00 0E                        cmp SentData , 0EH
+[ 259]    03D3: 75 03 E9 6B 07                        jz exit
+[ 260]        :                                       
+[ 261]    03D8: 80 3E 06 00 1C                        CMP RecData, 1CH
+[ 262]    03DD: 75 03 E9 CF 00                        JZ RecInv
+[ 263]        :                                       
+[ 264]    03E2: 80 3E 06 00 2E                        cmp RecData,2Eh
+[ 265]    03E7: 74 3F                                 jz RecInvChat
+[ 266]        :                                       
+[ 267]    03E9: 80 3E 06 00 0E                        CMP RecData, 0EH
+[ 268]    03EE: 75 03 E9 50 07                        JZ exit
+[ 269]        :                                       
+[ 270]    03F3: E9 70 FF                              JMP GetInput
+[ 271]        :                                       ;-------------------------------------------------------------
+[ 272]        :                                       
+[ 273]    03F6:                                       SendInvChat:
+[ 274]        :                                       
+[ 275]        :                                       ;moving cursor
+[ 276]    03F6: B7 00                                 MOV BH, 0
+[ 277]    03F8: B4 02                                 MOV AH, 2
+[ 278]    03FA: B2 02                                 MOV DL, 2D
+[ 279]    03FC: B6 0A                                 MOV DH, 10D
+[ 280]    03FE: CD 10                                 INT 10H
+[ 281]        :                                       
+[ 282]        :                                       ;PRINTING MESSAGE
+[ 283]    0400: B4 09                                 MOV AH, 9
+[ 284]    0402: BA 07 00                              LEA DX, WaitInv
+[ 285]    0405: CD 21                                 INT 21H
+[ 286]        :                                       
+[ 287]        :                                       ;wait till invitation is accepted
+[ 288]    0407: C6 06 06 00 3D                        MOV RecData, '='
+[ 289]        :                                       
+[ 290]    040C: E8 C2 0D                              CALL SendAndRec
+[ 291]        :                                       
+[ 292]    040F: 80 3E 06 00 1C                        CMP RecData, 1CH
+[ 293]    0414: 75 06                                 jnz nochat
+[ 294]        :                                       
+[ 295]    0416: E8 9B 0E                              call chat_ ;go to chat
+[ 296]    0419: E9 E0 FE                              jmp MainMenu
+[ 297]        :                                       
+[ 298]    041C:                                       nochat:
+[ 299]        :                                       ;if down is pressed, return to getInput
+[ 300]    041C: 80 3E 06 00 50                        CMP RecData, 50H
+[ 301]    0421: 75 03 E9 40 FF                        JZ GetInput
+[ 302]        :                                       
+[ 303]    0426: 75 CE                                 JNZ SendInvChat
+[ 304]        :                                       ;-------------------------------------------------------------------------------------------------------
+[ 305]        :                                       
+[ 306]    0428:                                       RecInvChat:
+[ 307]        :                                       
+[ 308]    0428: C6 06 05 00 3D                        MOV SentData, '='
+[ 309]        :                                       
+[ 310]        :                                       ;moving cursor
+[ 311]    042D: B7 00                                 MOV BH, 0
+[ 312]    042F: B4 02                                 MOV AH, 2
+[ 313]    0431: B2 02                                 MOV DL, 2D
+[ 314]    0433: B6 0A                                 MOV DH, 10D
+[ 315]    0435: CD 10                                 INT 10H
+[ 316]        :                                       
+[ 317]        :                                       ;PRINTING MESSAGE
+[ 318]    0437: B4 09                                 MOV AH, 9
+[ 319]    0439: BA 3F 01                              LEA DX, PL2Name
+[ 320]    043C: 83 C2 02                              ADD DX, 2
+[ 321]    043F: CD 21                                 INT 21H
+[ 322]    0441: 4A                                    DEC DX
+[ 323]    0442: BA 46 00                              LEA DX, ChatInv
+[ 324]    0445: CD 21                                 INT 21H
+[ 325]        :                                       
+[ 326]        :                                       ;moving cursor
+[ 327]    0447: B7 00                                 MOV BH, 0
+[ 328]    0449: B4 02                                 MOV AH, 2
+[ 329]    044B: B2 02                                 MOV DL, 2D
+[ 330]    044D: B6 0C                                 MOV DH, 12D
+[ 331]    044F: CD 10                                 INT 10H
+[ 332]        :                                       
+[ 333]        :                                       ;PRINTING MESSAGE
+[ 334]    0451: B4 09                                 MOV AH, 9
+[ 335]    0453: BA 60 00                              LEA DX, AcceptInv
+[ 336]    0456: CD 21                                 INT 21H
+[ 337]        :                                       
+[ 338]        :                                       ;moving cursor
+[ 339]    0458: B7 00                                 MOV BH, 0
+[ 340]    045A: B4 02                                 MOV AH, 2
+[ 341]    045C: B2 02                                 MOV DL, 2D
+[ 342]    045E: B6 0E                                 MOV DH, 14D
+[ 343]    0460: CD 10                                 INT 10H
+[ 344]        :                                       
+[ 345]        :                                       ;PRINTING MESSAGE
+[ 346]    0462: B4 09                                 MOV AH, 9
+[ 347]    0464: BA 81 00                              LEA DX, RefuseInv
+[ 348]    0467: CD 21                                 INT 21H
+[ 349]        :                                       
+[ 350]        :                                       ;wait till invitation is accepted
+[ 351]    0469: E8 65 0D                              CALL SendAndRec
+[ 352]        :                                       
+[ 353]    046C: 80 3E 05 00 1C                        CMP SentData, 1CH
+[ 354]    0471: 75 06                                 JNZ nochat2
+[ 355]        :                                       
+[ 356]    0473: E8 3E 0E                              call chat_
+[ 357]    0476: E9 83 FE                              jmp MainMenu
+[ 358]        :                                       
+[ 359]        :                                       
+[ 360]    0479:                                       nochat2:
+[ 361]        :                                       ;if down is pressed, return to getInput
+[ 362]    0479: 80 3E 05 00 50                        CMP SentData, 50H
+[ 363]    047E: 75 03 E9 E3 FE                        JZ GetInput
+[ 364]        :                                       
+[ 365]    0483: 75 A3                                 JNZ RecInvChat
+[ 366]        :                                       
+[ 367]        :                                       
+[ 368]        :                                       ;-----------------------------------------------------------------------------------------------------
+[ 369]    0485:                                       SendInv:
+[ 370]        :                                       
+[ 371]        :                                       ;moving cursor
+[ 372]    0485: B7 00                                 MOV BH, 0
+[ 373]    0487: B4 02                                 MOV AH, 2
+[ 374]    0489: B2 02                                 MOV DL, 2D
+[ 375]    048B: B6 0A                                 MOV DH, 10D
+[ 376]    048D: CD 10                                 INT 10H
+[ 377]        :                                       
+[ 378]        :                                       ;PRINTING MESSAGE
+[ 379]        :                                       
+[ 380]    048F: B4 09                                 MOV AH, 9
+[ 381]    0491: BA 07 00                              LEA DX, WaitInv
+[ 382]    0494: CD 21                                 INT 21H
+[ 383]        :                                       
+[ 384]        :                                       ;wait till invitation is accepted
+[ 385]    0496: C6 06 06 00 3D                        MOV RecData, '='
+[ 386]        :                                       
+[ 387]    049B: E8 33 0D                              CALL SendAndRec
+[ 388]        :                                       
+[ 389]    049E: 80 3E 06 00 1C                        CMP RecData, 1CH
+[ 390]    04A3: 74 63                                 JZ ST
+[ 391]        :                                       
+[ 392]    04A5: 80 3E 06 00 50                        CMP RecData, 50H
+[ 393]    04AA: 75 03 E9 B7 FE                        JZ GetInput
+[ 394]        :                                       
+[ 395]    04AF: 75 D4                                 JNZ SendInv
+[ 396]        :                                       
+[ 397]        :                                       ;-----------------------------------------------------------------------------------------------------
+[ 398]    04B1:                                       RecInv:
+[ 399]        :                                       
+[ 400]    04B1: C6 06 05 00 3D                        MOV SentData, '='
+[ 401]        :                                       
+[ 402]        :                                       ;moving cursor
+[ 403]    04B6: B7 00                                 MOV BH, 0
+[ 404]    04B8: B4 02                                 MOV AH, 2
+[ 405]    04BA: B2 02                                 MOV DL, 2D
+[ 406]    04BC: B6 0A                                 MOV DH, 10D
+[ 407]    04BE: CD 10                                 INT 10H
+[ 408]        :                                       
+[ 409]        :                                       ;PRINTING MESSAGE
+[ 410]    04C0: B4 09                                 MOV AH, 9
+[ 411]    04C2: BA 3F 01                              LEA DX, PL2Name
+[ 412]    04C5: 83 C2 02                              ADD DX, 2
+[ 413]    04C8: CD 21                                 INT 21H
+[ 414]    04CA: 4A                                    DEC DX
+[ 415]    04CB: BA 2C 00                              LEA DX, GameInv
+[ 416]    04CE: CD 21                                 INT 21H
+[ 417]        :                                       
+[ 418]        :                                       ;moving cursor
+[ 419]    04D0: B7 00                                 MOV BH, 0
+[ 420]    04D2: B4 02                                 MOV AH, 2
+[ 421]    04D4: B2 02                                 MOV DL, 2D
+[ 422]    04D6: B6 0C                                 MOV DH, 12D
+[ 423]    04D8: CD 10                                 INT 10H
+[ 424]        :                                       
+[ 425]        :                                       ;PRINTING MESSAGE
+[ 426]    04DA: B4 09                                 MOV AH, 9
+[ 427]    04DC: BA 60 00                              LEA DX, AcceptInv
+[ 428]    04DF: CD 21                                 INT 21H
+[ 429]        :                                       
+[ 430]        :                                       ;moving cursor
+[ 431]    04E1: B7 00                                 MOV BH, 0
+[ 432]    04E3: B4 02                                 MOV AH, 2
+[ 433]    04E5: B2 02                                 MOV DL, 2D
+[ 434]    04E7: B6 0E                                 MOV DH, 14D
+[ 435]    04E9: CD 10                                 INT 10H
+[ 436]        :                                       
+[ 437]        :                                       ;PRINTING MESSAGE
+[ 438]    04EB: B4 09                                 MOV AH, 9
+[ 439]    04ED: BA 81 00                              LEA DX, RefuseInv
+[ 440]    04F0: CD 21                                 INT 21H
+[ 441]        :                                       
+[ 442]        :                                       ;wait till invitation is accepted
+[ 443]    04F2: E8 DC 0C                              CALL SendAndRec
+[ 444]        :                                       
+[ 445]    04F5: 80 3E 05 00 1C                        CMP SentData, 1CH
+[ 446]    04FA: 74 0C                                 JZ ST
+[ 447]        :                                       
+[ 448]    04FC: 80 3E 05 00 50                        CMP SentData, 50H
+[ 449]    0501: 75 03 E9 60 FE                        JZ GetInput
+[ 450]        :                                       
+[ 451]    0506: 75 A9                                 JNZ RecInv
+[ 452]        :                                       
+[ 453]        :                                       ;-----------------------------------------------------------------------------------------------------
+[ 454]        :                                       
+[ 455]    0508:                                       ST:
+[ 456]        :                                       ;graphicAL mode
+[ 457]    0508: B7 00                                 MOV BH, 0
+[ 458]    050A: B4 00                                 MOV ah , 0
+[ 459]    050C: B0 13                                 MOV AL , 13h
+[ 460]    050E: CD 10                                 INT 10h
+[ 461]        :                                       
+[ 462]        :                                       ;-----------------------------------------------------------------------------------------------------
+[ 463]        :                                       
+[ 464]        :                                       ;drawing status bar
+[ 465]        :                                       
+[ 466]    0510: E8 67 0F                              call DrawStatusBar
+[ 467]        :                                       
+[ 468]        :                                       ;drawing the tow players in their initiAL positions
+[ 469]        :                                       ;parameters... two poINTs and colour
+[ 470]        :                                       
+[ 471]    0513: 60 8B 0E A3 00 8B 16 A5 00 B0 05 B4   DrawWithColour Pl1Pos,Pl1Pos[2],Pl1Pos[4],Pl1Pos[6],5h
+                0C 8B 1E A9 00 2B 1E A5 00 8B F3 B7 
+                00 8B 0E A3 00 B7 00 CD 10 41 3B 0E 
+                A7 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 472]    0543: 60 8B 0E AB 00 8B 16 A5 00 B0 05 B4   DrawWithColour Pl1Pos[8],Pl1Pos[2],Pl1Pos[8],Pl1Pos[10],5h
+                0C 8B 1E AD 00 2B 1E A5 00 8B F3 B7 
+                00 8B 0E AB 00 B7 00 CD 10 41 3B 0E 
+                AB 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 473]    0573: 60 8B 0E AF 00 8B 16 B1 00 B0 05 B4   DrawWithColour Pl2Pos,Pl2Pos[2],Pl2Pos[4],Pl2Pos[6],5h
+                0C 8B 1E B5 00 2B 1E B1 00 8B F3 B7 
+                00 8B 0E AF 00 B7 00 CD 10 41 3B 0E 
+                B3 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 474]    05A3: 60 8B 0E B7 00 8B 16 B9 00 B0 05 B4   DrawWithColour Pl2Pos[8],Pl2Pos[10],Pl2Pos[8],Pl2Pos[2],5h
+                0C 8B 1E B1 00 2B 1E B9 00 8B F3 B7 
+                00 8B 0E B7 00 B7 00 CD 10 41 3B 0E 
+                B7 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 475]        :                                       
+[ 476]        :                                       ;drawing blocks
+[ 477]        :                                       
+[ 478]    05D3: E8 5A 06                              CALL DRAW_BLOCKS
+[ 479]        :                                       
+[ 480]        :                                       
+[ 481]        :                                       ;-----------------------------------------------------------------------------------------------------
+[ 482]        :                                       
+[ 483]        :                                       ;play as long as you you don't press Esc key
+[ 484]        :                                       
+[ 485]    05D6:                                       CHECK:
+[ 486]        :                                       ;b7ut feha ay 7aga msh ha-check 3leha
+[ 487]    05D6: C6 06 05 00 3D                        MOV SentData, '='
+[ 488]    05DB: C6 06 06 00 3D                        MOV RecData, '='
+[ 489]        :                                       
+[ 490]        :                                       ;Read data, sent or recieved
+[ 491]    05E0: E8 EE 0B                              CALL SendAndRec
+[ 492]        :                                       
+[ 493]        :                                       ;check ReceivedData ----------------------------------------------------
+[ 494]        :                                       
+[ 495]        :                                       ;click enter => inline chat
+[ 496]        :                                       
+[ 497]    05E3: 80 3E 06 00 1C                        CMP RecData , 1ch
+[ 498]    05E8: 74 5E                                 JZ  InLineChattingRec
+[ 499]        :                                       
+[ 500]        :                                       ;right button
+[ 501]    05EA: 80 3E 06 00 4D                        CMP RecData,4DH
+[ 502]    05EF: 75 03 E9 1D 02                        JZ right2
+[ 503]        :                                       
+[ 504]        :                                       ;left button
+[ 505]    05F4: 80 3E 06 00 4B                        CMP RecData,4BH
+[ 506]    05F9: 75 03 E9 F4 02                        JZ left2
+[ 507]        :                                       
+[ 508]        :                                       ;up button
+[ 509]    05FE: 80 3E 06 00 48                        CMP RecData, 48H
+[ 510]    0603: 75 03 E9 06 04                        JZ Shoot2
+[ 511]        :                                       
+[ 512]        :                                       ;escape button
+[ 513]    0608: 80 3E 06 00 0E                        CMP RecData,0EH
+[ 514]    060D: 75 03 E9 EA FC                        JZ MainMenu
+[ 515]        :                                       
+[ 516]        :                                       ;check SentData------------------------------------------------------
+[ 517]        :                                       
+[ 518]    0612: 80 3E 05 00 1C                        cmp SentData , 1ch
+[ 519]    0617: 74 27                                 jz InLineChattingSend
+[ 520]        :                                       
+[ 521]        :                                       ;right button
+[ 522]    0619: 80 3E 05 00 4D                        CMP SentData,4DH
+[ 523]    061E: 74 30                                 JZ right
+[ 524]        :                                       
+[ 525]        :                                       ;left button
+[ 526]    0620: 80 3E 05 00 4B                        CMP SentData,4BH
+[ 527]    0625: 75 03 E9 07 01                        JZ left
+[ 528]        :                                       
+[ 529]        :                                       ;up button
+[ 530]    062A: 80 3E 05 00 48                        CMP SentData, 48H
+[ 531]    062F: 75 03 E9 9E 03                        JZ Shoot1
+[ 532]        :                                       
+[ 533]        :                                       ;escape button
+[ 534]    0634: 80 3E 05 00 0E                        CMP SentData,0EH
+[ 535]    0639: 75 03 E9 BE FC                        JZ MainMenu
+[ 536]        :                                       
+[ 537]        :                                       ;mfe4 7aga sent aw recieved
+[ 538]    063E: EB 96                                 JMP CHECK
+[ 539]        :                                       
+[ 540]        :                                       ;-----------------------------------------------------------------------------------------------------
+[ 541]        :                                       
+[ 542]    0640:                                       InLineChattingSend:
+[ 543]        :                                       
+[ 544]    0640: E8 E4 0E                              call InLineChatSend   ;go to inline chat
+[ 545]    0643: E8 34 0E                              call DrawStatusBar
+[ 546]    0646: EB 8E                                 jmp CHECK
+[ 547]        :                                       
+[ 548]    0648:                                       InLineChattingRec:
+[ 549]        :                                       
+[ 550]    0648: E8 9F 0F                              call InLineChatReceive   ;go to inline chat
+[ 551]    064B: E8 2C 0E                              call DrawStatusBar
+[ 552]    064E: EB 86                                 jmp CHECK
+[ 553]        :                                       
+[ 554]        :                                       
+[ 555]        :                                       ;-----------------------------------------------------------------------------------------------------
+[ 556]    0650:                                       right:
+[ 557]        :                                       
+[ 558]    0650: 81 3E A7 00 40 01                     CMP Pl1Pos[4],320d   ;reaching right edge... no action
+[ 559]    0656: 75 03 E9 7B FF                        JZ CHECK
+[ 560]        :                                       
+[ 561]        :                                       ;clearing
+[ 562]        :                                       
+[ 563]    065B: 60 8B 0E AB 00 8B 16 A9 00 B0 00 B4   DrawWithColour Pl1Pos[8],Pl1Pos[6],Pl1Pos[8],Pl1Pos[10],0h  ;reMOVing the most left column
+                0C 8B 1E AD 00 2B 1E A9 00 8B F3 B7 
+                00 8B 0E AB 00 B7 00 CD 10 41 3B 0E 
+                AB 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 564]    068B: 60 8B 0E A3 00 8B 16 A5 00 B0 00 B4   DrawWithColour Pl1Pos,Pl1Pos[2],Pl1Pos,Pl1Pos[6],0h         ;reMOVing L_madf3 *_*
+                0C 8B 1E A9 00 2B 1E A5 00 8B F3 B7 
+                00 8B 0E A3 00 B7 00 CD 10 41 3B 0E 
+                A3 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 565]        :                                       
+[ 566]    06BB: BB 00 00                              MOV bx,0
+[ 567]    06BE: BE 03 00                              MOV si,3
+[ 568]        :                                       
+[ 569]    06C1:                                       ShiftEachXRight:   ;INCrementing Xs
+[ 570]        :                                       
+[ 571]    06C1: FF 87 A3 00                           INC Pl1Pos[bx]
+[ 572]        :                                       
+[ 573]    06C5: 83 C3 04                              ADD bx,4   ;Xs only
+[ 574]    06C8: 4E                                    DEC si
+[ 575]    06C9: 83 FE 00                              CMP si,0
+[ 576]    06CC: 75 F3                                 JNZ ShiftEachXright
+[ 577]        :                                       
+[ 578]        :                                       ;redrawing cleared areas
+[ 579]        :                                       
+[ 580]    06CE: 60 8B 0E AB 00 8B 16 A9 00 B0 05 B4   DrawWithColour Pl1Pos[8],Pl1Pos[6],Pl1Pos[8],Pl1Pos[10],5h ;draw another column in the right side instead of the one has reMOVed from the left recently
+                0C 8B 1E AD 00 2B 1E A9 00 8B F3 B7 
+                00 8B 0E AB 00 B7 00 CD 10 41 3B 0E 
+                AB 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 581]    06FE: 60 8B 0E A7 00 8B 16 A5 00 B0 05 B4   DrawWithColour Pl1Pos[4],Pl1Pos[2],Pl1Pos[4],Pl1Pos[6],5h  ;draw L_madf3 in the new center (shifted one)  thus we MOVed one step to the right
+                0C 8B 1E A9 00 2B 1E A5 00 8B F3 B7 
+                00 8B 0E A7 00 B7 00 CD 10 41 3B 0E 
+                A7 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 582]        :                                       
+[ 583]        :                                       
+[ 584]        :                                       
+[ 585]    072E: E9 A5 FE                              JMP CHECK
+[ 586]        :                                       
+[ 587]        :                                       ;-----------------------------------------------------------------------------------------------------
+[ 588]    0731:                                       left:
+[ 589]        :                                       
+[ 590]    0731: 83 3E A3 00 00                        CMP Pl1Pos , 0h   ;reaching left edge... no action
+[ 591]    0736: 75 03 E9 9B FE                        JZ CHECK
+[ 592]        :                                       
+[ 593]        :                                       ;clearing
+[ 594]        :                                       
+[ 595]    073B: 60 8B 0E AB 00 8B 16 A9 00 B0 00 B4   DrawWithColour Pl1Pos[8],Pl1Pos[6],Pl1Pos[8],Pl1Pos[10],0h          ;reMOVing the most right column
+                0C 8B 1E AD 00 2B 1E A9 00 8B F3 B7 
+                00 8B 0E AB 00 B7 00 CD 10 41 3B 0E 
+                AB 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 596]    076B: 60 8B 0E A7 00 8B 16 A5 00 B0 00 B4   DrawWithColour Pl1Pos[4],Pl1Pos[2],Pl1Pos[4],Pl1Pos[6],0h           ;reMOVing L_madf3 ^_^ *_*
+                0C 8B 1E A9 00 2B 1E A5 00 8B F3 B7 
+                00 8B 0E A7 00 B7 00 CD 10 41 3B 0E 
+                A7 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 597]        :                                       
+[ 598]    079B: BB 00 00                              MOV bx,0
+[ 599]    079E: BE 03 00                              MOV si,3
+[ 600]        :                                       
+[ 601]        :                                       
+[ 602]    07A1:                                       ShiftEachXLeft:  ;DECrementing Xs
+[ 603]        :                                       
+[ 604]    07A1: FF 8F A3 00                           DEC Pl1Pos[bx]
+[ 605]        :                                       ;Xs only ..don't forget!!!
+[ 606]    07A5: 83 C3 04                              ADD bx,4
+[ 607]    07A8: 4E                                    DEC si
+[ 608]    07A9: 83 FE 00                              CMP si,0
+[ 609]    07AC: 75 F3                                 JNZ ShiftEachXLeft
+[ 610]        :                                       
+[ 611]        :                                       ;redrawing cleared areas
+[ 612]        :                                       
+[ 613]        :                                       ;draw another column in the left side instead of the one has reMOVed from the right recently
+[ 614]        :                                       ;draw L_madf3 in the new center (shifted one)  thus we MOVed one step to the left
+[ 615]        :                                       
+[ 616]    07AE: 60 8B 0E AB 00 8B 16 A9 00 B0 05 B4   DrawWithColour Pl1Pos[8],Pl1Pos[6],Pl1Pos[8],Pl1Pos[10],5h
+                0C 8B 1E AD 00 2B 1E A9 00 8B F3 B7 
+                00 8B 0E AB 00 B7 00 CD 10 41 3B 0E 
+                AB 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 617]    07DE: 60 8B 0E A3 00 8B 16 A5 00 B0 05 B4   DrawWithColour Pl1Pos,Pl1Pos[2],Pl1Pos,Pl1Pos[6],5h
+                0C 8B 1E A9 00 2B 1E A5 00 8B F3 B7 
+                00 8B 0E A3 00 B7 00 CD 10 41 3B 0E 
+                A3 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 618]        :                                       
+[ 619]    080E: E9 C5 FD                              JMP CHECK
+[ 620]        :                                       
+[ 621]        :                                       ;-----------------------------------------------------------------------------------------------------
+[ 622]    0811:                                       right2:
+[ 623]        :                                       
+[ 624]    0811: 81 3E B3 00 40 01                     CMP Pl2Pos[4],320d   ;reaching right edge... no action
+[ 625]    0817: 75 03 E9 BA FD                        JZ CHECK
+[ 626]        :                                       
+[ 627]        :                                       ;clearing
+[ 628]        :                                       
+[ 629]    081C: 60 8B 0E B7 00 8B 16 B9 00 B0 00 B4   DrawWithColour Pl2Pos[8],Pl2Pos[10],Pl2Pos[8],Pl2Pos[2],0h  ;reMOVing the most left column
+                0C 8B 1E B1 00 2B 1E B9 00 8B F3 B7 
+                00 8B 0E B7 00 B7 00 CD 10 41 3B 0E 
+                B7 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 630]    084C: 60 8B 0E AF 00 8B 16 B1 00 B0 00 B4   DrawWithColour Pl2Pos,Pl2Pos[2],Pl2Pos,Pl2Pos[6],0h         ;reMOVing L_madf3 *_*
+                0C 8B 1E B5 00 2B 1E B1 00 8B F3 B7 
+                00 8B 0E AF 00 B7 00 CD 10 41 3B 0E 
+                AF 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 631]        :                                       
+[ 632]    087C: BB 00 00                              MOV bx,0
+[ 633]    087F: BE 03 00                              MOV si,3
+[ 634]        :                                       
+[ 635]    0882:                                       ShiftEachX2Right:   ;INCrementing Xs
+[ 636]        :                                       
+[ 637]    0882: FF 87 AF 00                           INC Pl2Pos[bx]
+[ 638]        :                                       
+[ 639]    0886: 83 C3 04                              ADD bx,4   ;Xs only
+[ 640]    0889: 4E                                    DEC si
+[ 641]    088A: 83 FE 00                              CMP si,0
+[ 642]    088D: 75 F3                                 JNZ ShiftEachX2right
+[ 643]        :                                       
+[ 644]        :                                       ;redrawing cleared areas
+[ 645]        :                                       
+[ 646]    088F: 60 8B 0E B7 00 8B 16 B9 00 B0 05 B4   DrawWithColour Pl2Pos[8],Pl2Pos[10],Pl2Pos[8],Pl2Pos[2],5h ;draw another column in the right side instead of the one has reMOVed from the left recently
+                0C 8B 1E B1 00 2B 1E B9 00 8B F3 B7 
+                00 8B 0E B7 00 B7 00 CD 10 41 3B 0E 
+                B7 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 647]    08BF: 60 8B 0E B3 00 8B 16 B1 00 B0 05 B4   DrawWithColour Pl2Pos[4],Pl2Pos[2],Pl2Pos[4],Pl2Pos[6],5h  ;draw L_madf3 in the new center (shifted one)  thus we MOVed one step to the right
+                0C 8B 1E B5 00 2B 1E B1 00 8B F3 B7 
+                00 8B 0E B3 00 B7 00 CD 10 41 3B 0E 
+                B3 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 648]        :                                       
+[ 649]    08EF: E9 E4 FC                              JMP CHECK
+[ 650]        :                                       ;----------------------------------------------------------------------------------------------------------------------------------------------------------
+[ 651]    08F2:                                       left2:
+[ 652]        :                                       
+[ 653]    08F2: 83 3E AF 00 00                        CMP Pl2Pos , 0h   ;reaching left edge... no action
+[ 654]    08F7: 75 03 E9 DA FC                        JZ CHECK
+[ 655]        :                                       
+[ 656]        :                                       ;clearing
+[ 657]        :                                       
+[ 658]    08FC: 60 8B 0E B7 00 8B 16 B9 00 B0 00 B4   DrawWithColour Pl2Pos[8],Pl2Pos[10],Pl2Pos[8],Pl2Pos[2],0h          ;reMOVing the most right column
+                0C 8B 1E B1 00 2B 1E B9 00 8B F3 B7 
+                00 8B 0E B7 00 B7 00 CD 10 41 3B 0E 
+                B7 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 659]    092C: 60 8B 0E B3 00 8B 16 B1 00 B0 00 B4   DrawWithColour Pl2Pos[4],Pl2Pos[2],Pl2Pos[4],Pl2Pos[6],0h           ;reMOVing L_madf3 ^_^ *_*
+                0C 8B 1E B5 00 2B 1E B1 00 8B F3 B7 
+                00 8B 0E B3 00 B7 00 CD 10 41 3B 0E 
+                B3 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 660]        :                                       
+[ 661]    095C: BB 00 00                              MOV bx,0
+[ 662]    095F: BE 03 00                              MOV si,3
+[ 663]        :                                       
+[ 664]    0962:                                       ShiftEachX2Left:  ;DECrementing Xs
+[ 665]        :                                       
+[ 666]    0962: FF 8F AF 00                           DEC Pl2Pos[bx]
+[ 667]        :                                       ;Xs only ..don't forget!!!
+[ 668]    0966: 83 C3 04                              ADD bx,4
+[ 669]    0969: 4E                                    DEC si
+[ 670]    096A: 83 FE 00                              CMP si,0
+[ 671]    096D: 75 F3                                 JNZ ShiftEachX2Left
+[ 672]        :                                       
+[ 673]        :                                       ;redrawing cleared areas
+[ 674]        :                                       
+[ 675]        :                                       ;draw another column in the left side instead of the one has reMOVed from the right recently
+[ 676]        :                                       ;draw L_madf3 in the new center (shifted one)  thus we MOVed one step to the left
+[ 677]        :                                       
+[ 678]    096F: 60 8B 0E B7 00 8B 16 B9 00 B0 05 B4   DrawWithColour Pl2Pos[8],Pl2Pos[10],Pl2Pos[8],Pl2Pos[2],5h
+                0C 8B 1E B1 00 2B 1E B9 00 8B F3 B7 
+                00 8B 0E B7 00 B7 00 CD 10 41 3B 0E 
+                B7 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 679]    099F: 60 8B 0E AF 00 8B 16 B1 00 B0 05 B4   DrawWithColour Pl2Pos,Pl2Pos[2],Pl2Pos,Pl2Pos[6],5h
+                0C 8B 1E B5 00 2B 1E B1 00 8B F3 B7 
+                00 8B 0E AF 00 B7 00 CD 10 41 3B 0E 
+                AF 00 76 F5 4E 42 83 FE 00 75 EA 61 
+                                                    
+[ 680]        :                                       
+[ 681]    09CF: E9 04 FC                              JMP CHECK
+[ 682]        :                                       
+[ 683]        :                                       ;-------------------------------------------------------------------
+[ 684]    09D2:                                       Shoot1:
+[ 685]        :                                       
+[ 686]    09D2: 8B 0E AB 00                           MOV CX, Pl1Pos[8]
+[ 687]    09D6: 8B 16 AD 00                           MOV DX, Pl1Pos[10]
+[ 688]    09DA: B3 01                                 MOV BL, 1	;player 1 is shooting
+[ 689]        :                                       
+[ 690]    09DC: FF 36 AF 00                           PUSH Pl2Pos
+[ 691]    09E0: FF 36 B3 00                           PUSH Pl2Pos[4]
+[ 692]        :                                       	
+[ 693]    09E4: E8 68 01                              CALL ShootPlayer
+[ 694]        :                                       
+[ 695]        :                                       ;Clear Hearts of Player2 JIC
+[ 696]    09E7: B8 00 00                              MOV AX, 0
+[ 697]    09EA: B3 02                                 MOV BL, 2
+[ 698]    09EC: E8 44 03                              CALL DrawHealth
+[ 699]        :                                       
+[ 700]        :                                       ;Draw new health of player2
+[ 701]    09EF: 5B                                    POP BX
+[ 702]    09F0: 00 1E 77 02                           ADD PL1SCORE, BL
+[ 703]    09F4: A1 88 01                              MOV AX, Pl2Health
+[ 704]    09F7: 2B C3                                 SUB AX, BX
+[ 705]    09F9: A3 88 01                              MOV Pl2Health, AX
+[ 706]        :                                       ;CHECK IF PLAYER1 WON
+[ 707]    09FC: A1 88 01                              MOV AX, Pl2Health
+[ 708]    09FF: 3D 00 00                              CMP AX, 0
+[ 709]    0A02: B3 01                                 MOV BL, 1
+[ 710]    0A04: 74 44                                 JZ WIN
+[ 711]        :                                       
+[ 712]    0A06: B3 02                                 MOV BL, 2
+[ 713]    0A08: E8 28 03                              CALL DrawHealth
+[ 714]        :                                       
+[ 715]        :                                       
+[ 716]    0A0B: E9 C8 FB                              JMP CHECK
+[ 717]        :                                       ;--------------------------------------------------------------------
+[ 718]    0A0E:                                       Shoot2:
+[ 719]        :                                       
+[ 720]    0A0E: 8B 0E B7 00                           MOV CX, Pl2Pos[8]
+[ 721]    0A12: 8B 16 B9 00                           MOV DX, Pl2Pos[10]
+[ 722]    0A16: B3 02                                 MOV BL, 2	;player2 is shooting
+[ 723]    0A18: FF 36 A3 00                           PUSH Pl1Pos
+[ 724]    0A1C: FF 36 A7 00                           PUSH Pl1Pos[4]
+[ 725]        :                                       	
+[ 726]    0A20: E8 2C 01                              CALL ShootPlayer
+[ 727]        :                                       ;Clear Hearts of Player1 JIC
+[ 728]    0A23: B8 00 00                              MOV AX, 0
+[ 729]    0A26: B3 01                                 MOV BL, 1
+[ 730]    0A28: E8 08 03                              CALL DrawHealth
+[ 731]        :                                       
+[ 732]        :                                       ;Draw new health of player1
+[ 733]    0A2B: 5B                                    POP BX   ;pop the value last pushed in the stack (one if the shot hit zero if no)
+[ 734]    0A2C: 00 1E 78 02                           ADD PL2SCORE, BL
+[ 735]    0A30: A1 86 01                              MOV AX, Pl1Health
+[ 736]    0A33: 2B C3                                 SUB AX, BX ;if hit then it will decrease by one
+[ 737]    0A35: A3 86 01                              MOV Pl1Health, AX
+[ 738]        :                                       ;CHECK IF PLAYER1 WON
+[ 739]    0A38: A1 86 01                              MOV AX, Pl1Health
+[ 740]    0A3B: 3D 00 00                              CMP AX, 0
+[ 741]    0A3E: B3 02                                 MOV BL, 2
+[ 742]    0A40: 74 08                                 JZ  WIN
+[ 743]        :                                       
+[ 744]    0A42: B3 01                                 MOV BL, 1
+[ 745]    0A44: E8 EC 02                              CALL DrawHealth
+[ 746]    0A47: E9 8C FB                              JMP CHECK
+[ 747]        :                                       
+[ 748]        :                                       ;--------------------------------------------------------------------
+[ 749]    0A4A:                                       WIN:
+[ 750]        :                                       ;graphicAL mode
+[ 751]    0A4A: B7 00                                 MOV BH, 0
+[ 752]    0A4C: B4 00                                 MOV ah , 0
+[ 753]    0A4E: B0 13                                 MOV AL , 13h
+[ 754]    0A50: CD 10                                 INT 10h
+[ 755]        :                                       
+[ 756]    0A52: B4 02                                 MOV AH, 2
+[ 757]    0A54: B2 02                                 MOV DL, 2D
+[ 758]    0A56: B6 0A                                 MOV DH, 10D
+[ 759]    0A58: CD 10                                 INT 10H
+[ 760]        :                                       
+[ 761]    0A5A: 80 FB 01                              CMP BL, 1
+[ 762]    0A5D: 74 02                                 JZ WIN1
+[ 763]    0A5F: 75 4C                                 JNZ WIN2
+[ 764]        :                                       
+[ 765]        :                                       ;PUSH CX
+[ 766]        :                                       ;       MOV CH, PL1SCORE
+[ 767]        :                                       ;       MOV CL, PL2SCORE
+[ 768]        :                                       ;       CMP CH, CL
+[ 769]        :                                       ;       POP CX
+[ 770]        :                                       ;       JZ DRAW
+[ 771]        :                                       ;       JS WIN2
+[ 772]        :                                       
+[ 773]    0A61:                                       WIN1:
+[ 774]    0A61: BB 8A 01                              MOV BX, OFFSET PLWON
+[ 775]    0A64: 53                                    PUSH BX
+[ 776]    0A65: B4 09                                 MOV AH, 9
+[ 777]    0A67: 8B D3                                 MOV DX, BX
+[ 778]    0A69: CD 21                                 INT 21H
+[ 779]        :                                       
+[ 780]        :                                       ;NEXT LINE
+[ 781]    0A6B: B7 00                                 MOV BH, 0
+[ 782]    0A6D: B4 02                                 MOV AH, 2
+[ 783]    0A6F: B2 02                                 MOV DL, 2D
+[ 784]    0A71: B6 0C                                 MOV DH, 12D
+[ 785]    0A73: CD 10                                 INT 10H
+[ 786]        :                                       
+[ 787]    0A75: 5B                                    POP BX
+[ 788]    0A76: B4 09                                 MOV AH, 9
+[ 789]    0A78: 83 C3 11                              ADD BX, 17D
+[ 790]    0A7B: 53                                    PUSH BX
+[ 791]    0A7C: 8B D3                                 MOV DX, BX
+[ 792]    0A7E: CD 21                                 INT 21H
+[ 793]        :                                       
+[ 794]    0A80: BA 29 01                              MOV DX, OFFSET PL1NAME
+[ 795]    0A83: 83 C2 02                              ADD DX, 2
+[ 796]    0A86: CD 21                                 INT 21H
+[ 797]        :                                       ;NEXT LINE
+[ 798]    0A88: B7 00                                 MOV BH, 0
+[ 799]    0A8A: B4 02                                 MOV AH, 2
+[ 800]    0A8C: B2 02                                 MOV DL, 2D
+[ 801]    0A8E: B6 0E                                 MOV DH, 14D
+[ 802]    0A90: CD 10                                 INT 10H
+[ 803]        :                                       
+[ 804]    0A92: 5B                                    POP BX
+[ 805]    0A93: B4 09                                 MOV AH, 9
+[ 806]    0A95: 83 C3 09                              ADD BX, 9D
+[ 807]    0A98: 8B D3                                 MOV DX, BX
+[ 808]    0A9A: CD 21                                 INT 21H
+[ 809]        :                                       
+[ 810]    0A9C: BA 3F 01                              MOV DX, OFFSET PL2NAME
+[ 811]    0A9F: 83 C2 02                              ADD DX, 2
+[ 812]    0AA2: CD 21                                 INT 21H
+[ 813]        :                                       
+[ 814]    0AA4: 80 3E 76 02 01                        CMP LVLNO, 1
+[ 815]    0AA9: 74 4E                                 JZ GOTOLVL2
+[ 816]    0AAB: EB 79                                 JMP PRESS_KEY
+[ 817]        :                                       
+[ 818]    0AAD:                                       WIN2:
+[ 819]    0AAD: BB AC 01                              MOV BX, OFFSET PLLOSE
+[ 820]    0AB0: 53                                    PUSH BX
+[ 821]    0AB1: B4 09                                 MOV AH, 9
+[ 822]    0AB3: 8B D3                                 MOV DX, BX
+[ 823]    0AB5: CD 21                                 INT 21H
+[ 824]        :                                       
+[ 825]        :                                       ;NEXT LINE
+[ 826]    0AB7: B7 00                                 MOV BH, 0
+[ 827]    0AB9: B4 02                                 MOV AH, 2
+[ 828]    0ABB: B2 02                                 MOV DL, 2D
+[ 829]    0ABD: B6 0C                                 MOV DH, 12D
+[ 830]    0ABF: CD 10                                 INT 10H
+[ 831]        :                                       
+[ 832]    0AC1: 5B                                    POP BX
+[ 833]    0AC2: B4 09                                 MOV AH, 9
+[ 834]    0AC4: 83 C3 11                              ADD BX, 17D
+[ 835]    0AC7: 53                                    PUSH BX
+[ 836]    0AC8: 8B D3                                 MOV DX, BX
+[ 837]    0ACA: CD 21                                 INT 21H
+[ 838]        :                                       
+[ 839]    0ACC: BA 29 01                              MOV DX, OFFSET PL1NAME
+[ 840]    0ACF: 83 C2 02                              ADD DX, 2
+[ 841]    0AD2: CD 21                                 INT 21H
+[ 842]        :                                       ;NEXT LINE
+[ 843]    0AD4: B7 00                                 MOV BH, 0
+[ 844]    0AD6: B4 02                                 MOV AH, 2
+[ 845]    0AD8: B2 02                                 MOV DL, 2D
+[ 846]    0ADA: B6 0E                                 MOV DH, 14D
+[ 847]    0ADC: CD 10                                 INT 10H
+[ 848]        :                                       
+[ 849]    0ADE: 5B                                    POP BX
+[ 850]    0ADF: B4 09                                 MOV AH, 9
+[ 851]    0AE1: 83 C3 09                              ADD BX, 9D
+[ 852]    0AE4: 8B D3                                 MOV DX, BX
+[ 853]    0AE6: CD 21                                 INT 21H
+[ 854]        :                                       
+[ 855]    0AE8: BA 3F 01                              MOV DX, OFFSET PL2NAME
+[ 856]    0AEB: 83 C2 02                              ADD DX, 2
+[ 857]    0AEE: CD 21                                 INT 21H
+[ 858]        :                                       
+[ 859]    0AF0: 80 3E 76 02 01                        CMP LVLNO, 1
+[ 860]    0AF5: 74 02                                 JZ GOTOLVL2
+[ 861]    0AF7: EB 2D                                 JMP PRESS_KEY
+[ 862]        :                                       
+[ 863]        :                                       
+[ 864]        :                                       ;DRAW:
+[ 865]        :                                       ;       MOV BH, 0
+[ 866]        :                                       ;       MOV AH, 2
+[ 867]        :                                       ;       MOV DL, 2D
+[ 868]        :                                       ;       MOV DH, 14D
+[ 869]        :                                       ;       INT 10H
+[ 870]        :                                       ;
+[ 871]        :                                       ;       MOV BX, OFFSET DRAWTEXT
+[ 872]        :                                       ;       PUSH BX
+[ 873]        :                                       ;       MOV AH, 9
+[ 874]        :                                       ;       MOV DX, BX
+[ 875]        :                                       ;       INT 21H
+[ 876]        :                                       ;
+[ 877]        :                                       ;       CMP LVLNO, 1
+[ 878]        :                                       ;       JZ GOTOLVL2
+[ 879]        :                                       ;       JMP PRESS_KEY
+[ 880]        :                                       
+[ 881]    0AF9:                                       GOTOLVL2:
+[ 882]    0AF9: FE 06 76 02                           INC LVLNO
+[ 883]    0AFD: C7 06 86 01 03 00                     MOV PL1HEALTH, 3
+[ 884]    0B03: C7 06 88 01 03 00                     MOV PL2HEALTH, 3
+[ 885]        :                                       
+[ 886]        :                                       ;Clear buffer
+[ 887]    0B09: B4 0C                                 MOV ah,0ch
+[ 888]    0B0B: B0 00                                 MOV AL,0
+[ 889]    0B0D: CD 21                                 INT 21h
+[ 890]        :                                       
+[ 891]        :                                       ;PRESS ANY KEY TO CONTINUE
+[ 892]    0B0F: B7 00                                 MOV BH, 0
+[ 893]    0B11: B4 02                                 MOV AH, 2
+[ 894]    0B13: B2 02                                 MOV DL, 2D
+[ 895]    0B15: B6 10                                 MOV DH, 16D
+[ 896]    0B17: CD 10                                 INT 10H
+[ 897]        :                                       
+[ 898]    0B19: BA 4B 02                              MOV DX, OFFSET LVL2TEXT
+[ 899]    0B1C: B4 09                                 MOV AH, 9
+[ 900]    0B1E: CD 21                                 INT 21H
+[ 901]        :                                       
+[ 902]    0B20: E8 E1 06                              CALL SendOrRec
+[ 903]    0B23: E9 E2 F9                              JMP ST
+[ 904]        :                                       
+[ 905]        :                                       ;--------------------------------------------------------------------
+[ 906]    0B26:                                       PRESS_KEY:
+[ 907]        :                                       ;Clear buffer
+[ 908]    0B26: B4 0C                                 MOV ah,0ch
+[ 909]    0B28: B0 00                                 MOV AL,0
+[ 910]    0B2A: CD 21                                 INT 21h
+[ 911]        :                                       
+[ 912]        :                                       ;PRESS ANY KEY TO CONTINUE
+[ 913]    0B2C: B7 00                                 MOV BH, 0
+[ 914]    0B2E: B4 02                                 MOV AH, 2
+[ 915]    0B30: B2 02                                 MOV DL, 2D
+[ 916]    0B32: B6 10                                 MOV DH, 16D
+[ 917]    0B34: CD 10                                 INT 10H
+[ 918]        :                                       
+[ 919]    0B36: BA 26 02                              MOV DX, OFFSET ENDText
+[ 920]    0B39: B4 09                                 MOV AH, 9
+[ 921]    0B3B: CD 21                                 INT 21H
+[ 922]        :                                       
+[ 923]    0B3D: E8 C4 06                              CALL SendOrRec
+[ 924]        :                                       
+[ 925]    0B40: E9 B9 F7                              jmp MainMenu
+[ 926]        :                                       
+[ 927]    0B43:                                       exit:
+[ 928]        :                                       
+[ 929]        :                                       ;Clear Screen
+[ 930]    0B43: B7 00                                 MOV BH, 0
+[ 931]    0B45: B4 00                                 MOV AH, 0
+[ 932]    0B47: B0 00                                 MOV AL, 0
+[ 933]    0B49: CD 10                                 INT 10H
+[ 934]        :                                       
+[ 935]    0B4B: B4 4C                                 MOV AH , 0X4C
+[ 936]    0B4D: CD 21                                 INT 0X21
+[ 937]        :                                       
+[ 938]        :                                       
+[ 939]        :                                       MAIN ENDP
+[ 940]        :                                       
+[ 941]        :                                       ;====================================================================
+[ 942]        :                                       ;               --PROCEDURES--
+[ 943]        :                                       ;====================================================================
+[ 944]    0B4F:                                       ShootPlayer     PROC
+[ 945]        :                                       
+[ 946]        :                                       ;ASSUMPTIONS:
+[ 947]        :                                       ;CX=XSHOOTER, DX=YSHOOTER, X1,X2 OF OPONENT ARE PUSHED IN STACK, BL=FLAG
+[ 948]        :                                       
+[ 949]        :                                       ;PREPARE VARIABLES
+[ 950]        :                                       
+[ 951]    0B4F: BF 00 00                              	MOV DI, 0
+[ 952]    0B52: BE 91 00                              	MOV SI, 145D  ;difference in hieght between the two players  *height
+[ 953]    0B55: B4 0C                                 	MOV AH, 0CH   ;pixel drawing command
+[ 954]    0B57: B0 04                                 	MOV AL, 4     ;color RED
+[ 955]    0B59: B7 00                                 	MOV BH, 0
+[ 956]        :                                       	
+[ 957]        :                                       	;Draw first shoot
+[ 958]        :                                       	
+[ 959]    0B5B:                                       ShootDraw:
+[ 960]    0B5B: 47                                    	INC DI
+[ 961]    0B5C: 83 FF 05                              	CMP DI, 5
+[ 962]    0B5F: 74 11                                 	JZ ShootMOVE
+[ 963]    0B61: 80 FB 01                              	CMP BL, 1
+[ 964]    0B64: 74 02                                 	JZ ShootPl1		;PLAYER 1 IS SHOOTING
+[ 965]    0B66: 75 03                                 	JNZ ShootPL2		;PLAYER 2 IS SHOOTING
+[ 966]        :                                       
+[ 967]        :                                       	
+[ 968]    0B68:                                       ShootPL1:
+[ 969]    0B68: 42                                    INC DX
+[ 970]    0B69: EB 03                                 	JMP ShootRET1
+[ 971]    0B6B:                                       ShootPL2:
+[ 972]    0B6B: 4A                                    DEC DX
+[ 973]    0B6C: EB 00                                 JMP ShootRET1
+[ 974]        :                                       
+[ 975]    0B6E:                                       ShootRET1:
+[ 976]    0B6E: CD 10                                 INT 10H
+[ 977]    0B70: EB E9                                 	JMP ShootDraw
+[ 978]        :                                       	
+[ 979]        :                                       	;MOVE SHOT
+[ 980]        :                                       	
+[ 981]    0B72:                                       ShootMOVE:
+[ 982]        :                                       
+[ 983]        :                                       	;DELAY
+[ 984]    0B72: 53                                    	PUSH BX ;not missing any value stored in it
+[ 985]        :                                       	
+[ 986]    0B73: BB 00 10                              	MOV BX, 01000H
+[ 987]    0B76:                                       	ShootL1:
+[ 988]    0B76: 4B                                    	DEC BX
+[ 989]    0B77: 83 FB 00                              	CMP BX,0
+[ 990]    0B7A: 75 FA                                 	JNZ ShootL1
+[ 991]        :                                       
+[ 992]    0B7C: 5B                                    POP BX
+[ 993]        :                                       
+[ 994]        :                                       	;DRAW WITH CLR BLACK
+[ 995]    0B7D: B0 00                                 	MOV AL, 0
+[ 996]    0B7F: 80 FB 01                              	CMP BL, 1
+[ 997]    0B82: 74 68                                 	JZ ShootPL1_
+[ 998]    0B84: 75 70                                 	JNZ ShootPL2_
+[ 999]        :                                       	
+[1000]    0B86:                                       ShootRET2:
+[1001]    0B86: B0 04                                 	MOV AL, 4 ;red color
+[1002]    0B88: CD 10                                 INT 10H   ;draw
+[1003]        :                                       
+[1004]    0B8A: 4E                                    DEC SI    ;shot is getting much closer to the player one
+[1005]    0B8B: 80 3E 76 02 01                        	CMP LVLNO,1
+[1006]    0B90: 75 15                                 	JNZ LVL2
+[1007]        :                                       	
+[1008]    0B92: 83 FE 50                              	CMP SI,80D
+[1009]    0B95: 75 4E                                 	JNZ KEEPMOVING
+[1010]    0B97: 50                                    	PUSH AX
+[1011]    0B98: 8B C6                                 	MOV AX,SI
+[1012]    0B9A: E8 DD 01                              	CALL BLOCKSHOTLVL1
+[1013]    0B9D: 3B F0                                 	CMP SI,AX
+[1014]    0B9F: 58                                    	POP AX
+[1015]    0BA0: 75 43                                 	JNZ KEEPMOVING
+[1016]    0BA2: 58                                    	POP AX
+[1017]    0BA3: 6A 00                                 	PUSH 0
+[1018]    0BA5: 50                                    	PUSH AX
+[1019]    0BA6: C3                                    	RET
+[1020]        :                                       	
+[1021]    0BA7:                                       LVL2:
+[1022]    0BA7: 83 FE 58                              CMP SI,88
+[1023]    0BAA: 75 1A                                 JNZ SECONDROW
+[1024]    0BAC: 50                                    PUSH AX
+[1025]    0BAD: 8B C6                                 MOV AX,SI
+[1026]    0BAF: 80 FB 01                              CMP BL, 1
+[1027]    0BB2: 75 05                                 JNZ BLOCK2CALL
+[1028]    0BB4: E8 21 03                              CALL BLOCK1SHOTLVL2
+[1029]    0BB7: EB 03                                 JMP CON
+[1030]        :                                       
+[1031]    0BB9:                                       BLOCK2CALL:
+[1032]    0BB9: E8 7A 04                              CALL BLOCK2SHOTLVL2
+[1033]        :                                       
+[1034]    0BBC:                                       CON:
+[1035]    0BBC: 3B F0                                 CMP SI,AX
+[1036]    0BBE: 58                                    POP AX
+[1037]    0BBF: 75 05                                 JNZ SECONDROW
+[1038]    0BC1: 58                                    POP AX
+[1039]    0BC2: 6A 00                                 PUSH 0
+[1040]    0BC4: 50                                    PUSH AX
+[1041]    0BC5: C3                                    RET
+[1042]        :                                       
+[1043]    0BC6:                                       SECONDROW:
+[1044]    0BC6: 83 FE 48                              CMP SI, 72
+[1045]    0BC9: 75 1A                                 JNZ KEEPMOVING
+[1046]    0BCB: 50                                    PUSH AX
+[1047]    0BCC: 8B C6                                 MOV AX,SI
+[1048]    0BCE: 80 FB 01                              CMP BL,1
+[1049]    0BD1: 75 05                                 JNZ BLOCK1CALL
+[1050]    0BD3: E8 60 04                              CALL BLOCK2SHOTLVL2
+[1051]    0BD6: EB 03                                 JMP CON2
+[1052]        :                                       
+[1053]    0BD8:                                       BLOCK1CALL:
+[1054]    0BD8: E8 FD 02                              CALL BLOCK1SHOTLVL2
+[1055]        :                                       
+[1056]    0BDB:                                       CON2:
+[1057]    0BDB: 3B F0                                 CMP SI,AX
+[1058]    0BDD: 58                                    POP AX
+[1059]    0BDE: 75 05                                 JNZ KEEPMOVING
+[1060]    0BE0: 58                                    POP AX
+[1061]    0BE1: 6A 00                                 PUSH 0
+[1062]    0BE3: 50                                    PUSH AX
+[1063]    0BE4: C3                                    RET
+[1064]        :                                       
+[1065]        :                                       	
+[1066]    0BE5:                                       KEEPMOVING:
+[1067]    0BE5: 83 FE 00                              	CMP SI, 0 ;check if it reached to the level the player one moves in
+[1068]        :                                       	
+[1069]    0BE8: 75 88                                 	JNZ ShootMOVE ;noo!  go to move
+[1070]    0BEA: 74 14                                 	JZ ShootCLEAR ;yess! go to clear the shot
+[1071]        :                                       
+[1072]        :                                       ;clearing the upper pixel and drawing one more in the lower
+[1073]        :                                       ;so it seems that it moves downwards
+[1074]        :                                       
+[1075]    0BEC:                                       ShootPL1_:
+[1076]        :                                       
+[1077]    0BEC: 83 EA 03                              	SUB DX, 3     ;making Y= the upper pixel coordinate
+[1078]    0BEF: CD 10                                 	INT 10H       ;clearing it with black color
+[1079]    0BF1: 83 C2 04                              	ADD DX, 4     ;making Y= the coordinate of the pixel down the last one in the shot
+[1080]    0BF4: EB 90                                 	JMP ShootRET2 ;drawing it with red color
+[1081]        :                                       
+[1082]    0BF6:                                       ShootPL2_:
+[1083]        :                                       
+[1084]    0BF6: 83 C2 03                              	ADD DX, 3
+[1085]    0BF9: CD 10                                 	INT 10H
+[1086]    0BFB: 83 EA 04                              	SUB DX, 4
+[1087]    0BFE: EB 86                                 	JMP ShootRET2
+[1088]        :                                       
+[1089]    0C00:                                       ShootCLEAR:
+[1090]        :                                       
+[1091]    0C00: B0 00                                 	MOV AL, 0
+[1092]    0C02: 80 FB 01                              	CMP BL,1
+[1093]    0C05: 74 02                                 	JZ ShootPL1_CLR
+[1094]    0C07: 75 0B                                 	JNZ ShootPL2_CLR
+[1095]        :                                       
+[1096]    0C09:                                       ShootPL1_CLR:
+[1097]    0C09: CD 10                                 	INT 10H
+[1098]    0C0B: 4A                                    	DEC DX
+[1099]    0C0C: 46                                    	INC SI
+[1100]    0C0D: 83 FE 04                              	CMP SI, 4
+[1101]    0C10: 75 F7                                 	JNZ ShootPL1_CLR
+[1102]    0C12: 74 09                                 	JZ ShootEND
+[1103]        :                                       
+[1104]    0C14:                                       ShootPL2_CLR:
+[1105]    0C14: CD 10                                 	INT 10H
+[1106]    0C16: 42                                    	INC DX
+[1107]    0C17: 46                                    	INC SI
+[1108]    0C18: 83 FE 04                              	CMP SI, 4
+[1109]    0C1B: 75 F7                                 	JNZ ShootPL2_CLR
+[1110]        :                                       
+[1111]    0C1D:                                       ShootEND:
+[1112]    0C1D: 5A                                    POP DX  ;IP
+[1113]    0C1E: 58                                    POP AX  ;X2 of oponent
+[1114]    0C1F: 5B                                    POP BX  ;X1 of oponent
+[1115]        :                                       
+[1116]    0C20: 3B CB                                 CMP CX, BX
+[1117]    0C22: 78 08                                 JS Shoot1RET     ;IF XSHOOTER < X1 OF OPONENT, THEN IT WASN'T HIT
+[1118]    0C24: 3B C8                                 CMP CX, AX
+[1119]    0C26: 79 04                                 JNS Shoot1RET    ;IF XSHOOTR > X2 OF OPONENT, THEN IT WASN'T HIT
+[1120]    0C28: 6A 01                                 PUSH 1  ;HIT
+[1121]    0C2A: EB 02                                 JMP Shoot2RET
+[1122]    0C2C:                                       Shoot1RET:
+[1123]    0C2C: 6A 00                                 PUSH 0
+[1124]    0C2E:                                       Shoot2RET:
+[1125]    0C2E: 52                                    PUSH DX ;PUSH IP
+[1126]    0C2F: C3                                    RET
+[1127]        :                                       ShootPlayer     ENDP
+[1128]        :                                       ;====================================================================
+[1129]    0C30:                                       DRAW_BLOCKS PROC
+[1130]        :                                       
+[1131]        :                                       ;beginning from the position x=5
+[1132]        :                                       
+[1133]    0C30: B9 05 00                              MOV CX, 5D
+[1134]    0C33: BF 00 00                              MOV DI, 0
+[1135]    0C36: BE 00 00                              MOV SI,0
+[1136]    0C39: 80 3E 76 02 01                        CMP LVLNO,1
+[1137]    0C3E: 74 02                                 JZ ONEROW
+[1138]    0C40: EB 4F                                 JMP TWOROWS
+[1139]        :                                       
+[1140]    0C42:                                       ONEROW:
+[1141]    0C42:                                       BlocksRow:
+[1142]        :                                       
+[1143]    0C42: 89 8C D3 00                           MOV BlockPosX[SI],CX  ;STORING THE X COORDINATES OF EACH BLOCK
+[1144]    0C46: 8B D1                                 MOV DX, CX
+[1145]    0C48: 83 C2 1C                              ADD DX, WIDTH
+[1146]    0C4B: 89 0E 23 01                           MOV Xpoint1, CX
+[1147]    0C4F: 89 16 25 01                           MOV Xpoint2, DX
+[1148]    0C53: 60 8B 0E 23 01 BA 55 00 8A 85 F1 00   DrawWithColour Xpoint1, 85D, Xpoint2, 95D, INITIALCLRS1[DI]
+                B4 0C BB 5F 00 83 EB 55 8B F3 B7 00 
+                8B 0E 23 01 B7 00 CD 10 41 3B 0E 25 
+                01 76 F5 4E 42 83 FE 00 75 EA 61    
+[1149]    0C82: 83 C1 1F                              ADD CX, 31D
+[1150]    0C85: 47                                    INC DI
+[1151]    0C86: 83 C6 02                              ADD SI, 2
+[1152]    0C89: 83 FF 0A                              CMP DI, 10D
+[1153]    0C8C: 75 B4                                 JNZ BlocksRow
+[1154]    0C8E: E9 A1 00                              JMP ENDDRAWBLOCKS
+[1155]        :                                       
+[1156]    0C91:                                       TWOROWS:
+[1157]    0C91:                                       BlocksRow1:
+[1158]        :                                       
+[1159]    0C91: 89 8C D3 00                           MOV BlockPosX[SI],CX  ;STORING THE X COORDINATES OF EACH BLOCK
+[1160]    0C95: 8B D1                                 MOV DX, CX
+[1161]    0C97: 83 C2 1C                              ADD DX, WIDTH
+[1162]    0C9A: 89 0E 23 01                           MOV Xpoint1, CX
+[1163]    0C9E: 89 16 25 01                           MOV Xpoint2, DX
+[1164]    0CA2: 60 8B 0E 23 01 BA 4D 00 8A 85 05 01   DrawWithColour Xpoint1, 77D, Xpoint2, 87D, INITIALCLRS21[DI]
+                B4 0C BB 57 00 83 EB 4D 8B F3 B7 00 
+                8B 0E 23 01 B7 00 CD 10 41 3B 0E 25 
+                01 76 F5 4E 42 83 FE 00 75 EA 61    
+[1165]    0CD1: 83 C1 1F                              ADD CX, 31D
+[1166]    0CD4: 47                                    INC DI
+[1167]    0CD5: 83 C6 02                              ADD SI, 2
+[1168]    0CD8: 83 FF 0A                              CMP DI, 10D
+[1169]    0CDB: 75 B4                                 JNZ BlocksRow1
+[1170]        :                                       
+[1171]    0CDD: BF 00 00                              MOV DI,0
+[1172]    0CE0: B9 05 00                              MOV CX,5
+[1173]    0CE3: BE 00 00                              MOV SI,0
+[1174]        :                                       
+[1175]    0CE6:                                       BlocksRow2:
+[1176]        :                                       
+[1177]    0CE6: 89 8C D3 00                           MOV BlockPosX[SI],CX  ;STORING THE X COORDINATES OF EACH BLOCK
+[1178]    0CEA: 8B D1                                 MOV DX, CX
+[1179]    0CEC: 83 C2 1C                              ADD DX, WIDTH
+[1180]    0CEF: 89 0E 23 01                           MOV Xpoint1, CX
+[1181]    0CF3: 89 16 25 01                           MOV Xpoint2, DX
+[1182]    0CF7: 60 8B 0E 23 01 BA 5D 00 8A 85 19 01   DrawWithColour Xpoint1, 93D, Xpoint2, 103D, INITIALCLRS22[DI]
+                B4 0C BB 67 00 83 EB 5D 8B F3 B7 00 
+                8B 0E 23 01 B7 00 CD 10 41 3B 0E 25 
+                01 76 F5 4E 42 83 FE 00 75 EA 61    
+[1183]    0D26: 83 C1 1F                              ADD CX, 31D
+[1184]    0D29: 47                                    INC DI
+[1185]    0D2A: 83 C6 02                              ADD SI, 2
+[1186]    0D2D: 83 FF 0A                              CMP DI, 10D
+[1187]    0D30: 75 B4                                 JNZ BlocksRow2
+[1188]        :                                       
+[1189]    0D32:                                       ENDDRAWBLOCKS:
+[1190]    0D32: C3                                    RET
+[1191]        :                                       DRAW_BLOCKS ENDP
+[1192]        :                                       ;====================================================================
+[1193]    0D33:                                       DrawHealth  PROC
+[1194]        :                                       ;Assumption, AX = number of hearts
+[1195]        :                                       ;BL=1 => Player1, BL=2 => Player2
+[1196]        :                                       
+[1197]    0D33: 8B C8                                 MOV CX, AX
+[1198]    0D35: B4 02                                 MOV AH, 2
+[1199]        :                                       
+[1200]    0D37: B7 00                                 MOV BH, 0
+[1201]        :                                       
+[1202]    0D39: 80 FB 01                              CMP BL, 1
+[1203]    0D3C: 74 02                                 JZ  Health1
+[1204]    0D3E: 75 17                                 JNZ Health2
+[1205]        :                                       
+[1206]    0D40:                                       Health1:
+[1207]        :                                       
+[1208]    0D40: 8B 16 53 01                           MOV DX , HEART1POS
+[1209]    0D44: CD 10                                 INT 10H
+[1210]        :                                       
+[1211]        :                                       ;if number of hearts = 0 then
+[1212]        :                                       
+[1213]    0D46: 83 F9 00                              CMP CX, 0
+[1214]    0D49: 74 25                                 JZ DeleteHearts
+[1215]        :                                       
+[1216]        :                                       
+[1217]        :                                       ;printing hearts with the number stored in cx
+[1218]        :                                       
+[1219]    0D4B: B0 03                                 mov al, 03H     ;ASCII OF HEART SYMBOL
+[1220]    0D4D: B4 09                                 mov  ah, 9
+[1221]    0D4F: B7 00                                 mov  bh, 0
+[1222]    0D51: B3 04                                 mov  bl, 4      ;RED
+[1223]    0D53: CD 10                                 int  10h
+[1224]        :                                       
+[1225]    0D55: EB 22                                 JMP HealthExit
+[1226]        :                                       
+[1227]    0D57:                                       Health2:
+[1228]        :                                       
+[1229]    0D57: 8B 16 55 01                           MOV DX , HEART2POS
+[1230]    0D5B: CD 10                                 INT 10H
+[1231]    0D5D: 83 F9 00                              CMP CX, 0
+[1232]    0D60: 74 0E                                 JZ DeleteHearts
+[1233]    0D62: B2 03                                 MOV DL, 03H
+[1234]        :                                       
+[1235]    0D64: B0 03                                 mov al, 03H     ;ASCII OF HEART SYMBOL
+[1236]    0D66: B4 09                                 mov  ah, 9
+[1237]    0D68: B7 00                                 mov  bh, 0
+[1238]    0D6A: B3 04                                 mov  bl, 4      ;RED
+[1239]    0D6C: CD 10                                 int  10h
+[1240]        :                                       
+[1241]    0D6E: EB 09                                 JMP HealthExit
+[1242]        :                                       
+[1243]    0D70:                                       DeleteHearts:
+[1244]        :                                       
+[1245]    0D70: B2 20                                 MOV DL, 20H ;ascii code of the space
+[1246]    0D72: B9 05 00                              MOV CX, 5
+[1247]        :                                       
+[1248]        :                                       ;pronting spaces overwriting hearts
+[1249]        :                                       
+[1250]    0D75:                                       InnerDeleteHearts:
+[1251]    0D75: CD 21                                 INT 21H
+[1252]    0D77: E2 FC                                 LOOP InnerDeleteHearts
+[1253]        :                                       
+[1254]    0D79: C3                                    HealthExit: RET
+[1255]        :                                       DrawHealth  ENDP
+[1256]        :                                       ;====================================================================
+[1257]    0D7A:                                       BlockShotLVL1      Proc
+[1258]        :                                       
+[1259]    0D7A: 60                                    PUSHA
+[1260]    0D7B: BB 0B 00                              MOV BX,11D
+[1261]    0D7E: BF 14 00                              MOV DI,20D
+[1262]        :                                       
+[1263]        :                                       
+[1264]    0D81:                                       CHECKNXTLVL1:
+[1265]    0D81: 83 EF 02                              SUB DI,2
+[1266]    0D84: 4B                                    DEC BX
+[1267]    0D85: 74 34                                 JZ BLACKLVL1                    ;IF ALL BLOCKS ARE CHECKED AND NON WAS HIT, KEEP THE SHOT GOING
+[1268]        :                                       
+[1269]        :                                       
+[1270]    0D87: 8B 95 D3 00                           MOV DX, BLOCKPOSX[DI]       ;BLOCKPOSX IS A WORD
+[1271]    0D8B: 3B CA                                 CMP CX, DX                  ;CX= X OF THE SHOT
+[1272]    0D8D: 78 F2                                 JS CHECKNXTLVL1                 ;IF X[SHOT]<X[BEGINNING OF THE BLOCK] CHECK THE NEXT BLOCK
+[1273]    0D8F: 83 C2 1C                              ADD DX, WIDTH
+[1274]    0D92: 42                                    INC DX
+[1275]    0D93: 3B CA                                 CMP CX, DX
+[1276]    0D95: 79 24                                 JNS BLACKLVL1                   ;IF X[SHOT]>X[END OF THE BLOCK] KEEP THE SHOT GOING
+[1277]        :                                       
+[1278]    0D97: 80 BF E6 00 00                        CMP CLRS1[BX-1], 0
+[1279]    0D9C: 74 1D                                 JZ BLACKLVL1
+[1280]        :                                       
+[1281]    0D9E: 80 BF E6 00 0F                        CMP CLRS1[BX-1], 0FH
+[1282]    0DA3: 74 19                                 JZ WHITELVL1
+[1283]        :                                       
+[1284]    0DA5: 80 BF E6 00 08                        CMP CLRS1[BX-1], 08H
+[1285]    0DAA: 74 58                                 JZ GREYLVL1
+[1286]        :                                       
+[1287]    0DAC: 80 BF E6 00 04                        CMP CLRS1[BX-1], 4
+[1288]    0DB1: 75 03 E9 93 00                        JZ REDLVL1
+[1289]    0DB6: 74 03 E9 1B 01                        JNZ FINISHLVL1
+[1290]        :                                       
+[1291]        :                                       
+[1292]    0DBB:                                       BLACKLVL1:
+[1293]    0DBB: 61                                    POPA
+[1294]    0DBC: 4E                                    DEC SI                   ;INCREASE THE SHOT POSITION AS A FLAG FOR KEEPING THE SHOT GOING
+[1295]    0DBD: C3                                    RET
+[1296]        :                                       
+[1297]    0DBE:                                       WHITELVL1:
+[1298]    0DBE: C6 87 E6 00 08                        MOV CLRS1[BX-1], 08H       ;CHANGE THE COLOR TO GREY
+[1299]    0DC3: 8B 8D D3 00                           MOV CX, BlockPosX[DI]
+[1300]    0DC7: 8B D1                                 MOV DX, CX
+[1301]    0DC9: 83 C2 1C                              ADD DX, WIDTH
+[1302]    0DCC: 89 0E 23 01                           MOV Xpoint1, CX
+[1303]    0DD0: 89 16 25 01                           MOV Xpoint2, DX
+[1304]    0DD4: 60 8B 0E 23 01 BA 55 00 B0 08 B4 0C   DrawWithColour Xpoint1, 85D, Xpoint2, 95D, 08h
+                BB 5F 00 83 EB 55 8B F3 B7 00 8B 0E 
+                23 01 B7 00 CD 10 41 3B 0E 25 01 76 
+                F5 4E 42 83 FE 00 75 EA 61          
+[1305]    0E01: E9 A7 00                              JMP ERASETHESHOTLVL1
+[1306]        :                                       
+[1307]    0E04:                                       GREYLVL1:
+[1308]    0E04: C6 87 E6 00 00                        MOV CLRS1[BX-1], 0         ;ERASE THE BLOCK
+[1309]    0E09: 8B 8D D3 00                           MOV CX, BlockPosX[DI]
+[1310]    0E0D: 8B D1                                 MOV DX, CX
+[1311]    0E0F: 83 C2 1C                              ADD DX, WIDTH
+[1312]    0E12: 89 0E 23 01                           MOV Xpoint1, CX
+[1313]    0E16: 89 16 25 01                           MOV Xpoint2, DX
+[1314]    0E1A: 60 8B 0E 23 01 BA 55 00 B0 00 B4 0C   DrawWithColour Xpoint1, 85D, Xpoint2, 95D, 0
+                BB 5F 00 83 EB 55 8B F3 B7 00 8B 0E 
+                23 01 B7 00 CD 10 41 3B 0E 25 01 76 
+                F5 4E 42 83 FE 00 75 EA 61          
+[1315]    0E47: EB 62                                 JMP ERASETHESHOTLVL1
+[1316]        :                                       
+[1317]        :                                       
+[1318]    0E49:                                       REDLVL1:
+[1319]    0E49: C6 87 E6 00 00                        MOV CLRS1[BX-1], 0        ;ERASE THE BLOCK
+[1320]    0E4E: 8B 8D D3 00                           MOV CX, BlockPosX[DI]
+[1321]    0E52: 8B D1                                 MOV DX, CX
+[1322]    0E54: 83 C2 1C                              ADD DX, WIDTH
+[1323]    0E57: 89 0E 23 01                           MOV Xpoint1, CX
+[1324]    0E5B: 89 16 25 01                           MOV Xpoint2, DX
+[1325]    0E5F: 60 8B 0E 23 01 BA 55 00 B0 00 B4 0C   DrawWithColour Xpoint1, 85D, Xpoint2, 95D, 0
+                BB 5F 00 83 EB 55 8B F3 B7 00 8B 0E 
+                23 01 B7 00 CD 10 41 3B 0E 25 01 76 
+                F5 4E 42 83 FE 00 75 EA 61          
+[1326]        :                                       
+[1327]    0E8C: 61                                    POPA
+[1328]    0E8D: 60                                    PUSHA
+[1329]    0E8E: 80 FB 01                              CMP BL, 1
+[1330]    0E91: 74 02                                 JZ INCHEALTH1LVL1
+[1331]    0E93: 75 0C                                 JNZ INCHEALTH2LVL1
+[1332]        :                                       
+[1333]    0E95:                                       INCHEALTH1LVL1:
+[1334]    0E95: FF 06 86 01                           INC PL1HEALTH
+[1335]    0E99: A1 86 01                              MOV AX, PL1HEALTH
+[1336]    0E9C: E8 94 FE                              CALL DRAWHEALTH
+[1337]    0E9F: EB 0A                                 JMP ERASETHESHOTLVL1
+[1338]        :                                       
+[1339]        :                                       
+[1340]    0EA1:                                       INCHEALTH2LVL1:
+[1341]    0EA1: FF 06 88 01                           INC PL2HEALTH
+[1342]    0EA5: A1 88 01                              MOV AX, PL2HEALTH
+[1343]    0EA8: E8 88 FE                              CALL DRAWHEALTH
+[1344]        :                                       
+[1345]        :                                       
+[1346]    0EAB:                                       ERASETHESHOTLVL1:
+[1347]    0EAB: 61                                    POPA
+[1348]    0EAC: 60                                    PUSHA
+[1349]    0EAD: 80 FB 01                              CMP BL, 1
+[1350]    0EB0: 74 02                                 JZ ERASEPL1LVL1
+[1351]    0EB2: 75 12                                 JNZ ERASEPL2LVL1
+[1352]        :                                       
+[1353]        :                                       
+[1354]    0EB4:                                       ERASEPL1LVL1:
+[1355]    0EB4: BB 04 00                              MOV BX, 4
+[1356]    0EB7: 83 EA 03                              SUB DX, 3     ;making Y= the upper pixel coordinate
+[1357]    0EBA: B0 00                                 	        MOV AL, 0
+[1358]    0EBC: B4 0C                                 	        MOV AH, 0CH
+[1359]    0EBE:                                       NXTPXL1LVL1:
+[1360]    0EBE: CD 10                                 	        INT 10H       ;clearing it with black color
+[1361]    0EC0: 42                                    INC DX        ;TAKING THE NEXT PIXEL
+[1362]    0EC1: 4B                                    DEC BX
+[1363]    0EC2: 75 FA                                 JNZ NXTPXL1LVL1
+[1364]    0EC4: 74 10                                 JZ FINISHLVL1
+[1365]        :                                       
+[1366]    0EC6:                                       ERASEPL2LVL1:
+[1367]    0EC6: BB 04 00                              MOV BX, 4
+[1368]    0EC9: 83 C2 03                              ADD DX, 3     ;making Y= the upper pixel coordinate
+[1369]    0ECC: B0 00                                 	        MOV AL, 0
+[1370]    0ECE: B4 0C                                 	        MOV AH, 0CH
+[1371]    0ED0:                                       NXTPXL2LVL1:
+[1372]    0ED0: CD 10                                 	        INT 10H       ;clearing it with black color
+[1373]    0ED2: 4A                                    DEC DX        ;TAKING THE NEXT PIXEL
+[1374]    0ED3: 4B                                    DEC BX
+[1375]    0ED4: 75 FA                                 JNZ NXTPXL2LVL1
+[1376]        :                                       
+[1377]        :                                       
+[1378]    0ED6:                                       FINISHLVL1:
+[1379]    0ED6: 61                                    POPA
+[1380]        :                                       
+[1381]    0ED7: C3                                    RET
+[1382]        :                                       BlockShotLVL1 ENDP
+[1383]        :                                       ;===================================================================
+[1384]    0ED8:                                       Block1ShotLVL2      Proc
+[1385]        :                                       
+[1386]    0ED8: 60                                    PUSHA
+[1387]    0ED9: BB 0B 00                              MOV BX,11D
+[1388]    0EDC: BF 14 00                              MOV DI,20D
+[1389]        :                                       
+[1390]        :                                       
+[1391]    0EDF:                                       CHECKNXTLVL21:
+[1392]    0EDF: 83 EF 02                              SUB DI,2
+[1393]    0EE2: 4B                                    DEC BX
+[1394]    0EE3: 74 34                                 JZ BLACKLVL21                    ;IF ALL BLOCKS ARE CHECKED AND NON WAS HIT, KEEP THE SHOT GOING
+[1395]        :                                       
+[1396]        :                                       
+[1397]    0EE5: 8B 95 D3 00                           MOV DX, BLOCKPOSX[DI]       ;BLOCKPOSX IS A WORD
+[1398]    0EE9: 3B CA                                 CMP CX, DX                  ;CX= X OF THE SHOT
+[1399]    0EEB: 78 F2                                 JS CHECKNXTLVL21                 ;IF X[SHOT]<X[BEGINNING OF THE BLOCK] CHECK THE NEXT BLOCK
+[1400]    0EED: 83 C2 1C                              ADD DX, WIDTH
+[1401]    0EF0: 42                                    INC DX
+[1402]    0EF1: 3B CA                                 CMP CX, DX
+[1403]    0EF3: 79 24                                 JNS BLACKLVL21                   ;IF X[SHOT]>X[END OF THE BLOCK] KEEP THE SHOT GOING
+[1404]        :                                       
+[1405]    0EF5: 80 BF FA 00 00                        CMP CLRS21[BX-1], 0
+[1406]    0EFA: 74 1D                                 JZ BLACKLVL21
+[1407]        :                                       
+[1408]    0EFC: 80 BF FA 00 0F                        CMP CLRS21[BX-1], 0FH
+[1409]    0F01: 74 19                                 JZ WHITELVL21
+[1410]        :                                       
+[1411]    0F03: 80 BF FA 00 08                        CMP CLRS21[BX-1], 08H
+[1412]    0F08: 74 58                                 JZ GREYLVL21
+[1413]        :                                       
+[1414]    0F0A: 80 BF FA 00 04                        CMP CLRS21[BX-1], 4
+[1415]    0F0F: 75 03 E9 93 00                        JZ REDLVL21
+[1416]    0F14: 74 03 E9 1B 01                        JNZ FINISHLVL21
+[1417]        :                                       
+[1418]        :                                       
+[1419]    0F19:                                       BLACKLVL21:
+[1420]    0F19: 61                                    POPA
+[1421]    0F1A: 4E                                    DEC SI                   ;INCREASE THE SHOT POSITION AS A FLAG FOR KEEPING THE SHOT GOING
+[1422]    0F1B: C3                                    RET
+[1423]        :                                       
+[1424]    0F1C:                                       WHITELVL21:
+[1425]    0F1C: C6 87 FA 00 08                        MOV CLRS21[BX-1], 08H       ;CHANGE THE COLOR TO GREY
+[1426]    0F21: 8B 8D D3 00                           MOV CX, BlockPosX[DI]
+[1427]    0F25: 8B D1                                 MOV DX, CX
+[1428]    0F27: 83 C2 1C                              ADD DX, WIDTH
+[1429]    0F2A: 89 0E 23 01                           MOV Xpoint1, CX
+[1430]    0F2E: 89 16 25 01                           MOV Xpoint2, DX
+[1431]    0F32: 60 8B 0E 23 01 BA 4D 00 B0 08 B4 0C   DrawWithColour Xpoint1, 77D, Xpoint2, 87D, 08h
+                BB 57 00 83 EB 4D 8B F3 B7 00 8B 0E 
+                23 01 B7 00 CD 10 41 3B 0E 25 01 76 
+                F5 4E 42 83 FE 00 75 EA 61          
+[1432]    0F5F: E9 A7 00                              JMP ERASETHESHOTLVL21
+[1433]        :                                       
+[1434]    0F62:                                       GREYLVL21:
+[1435]    0F62: C6 87 FA 00 00                        MOV CLRS21[BX-1], 0         ;ERASE THE BLOCK
+[1436]    0F67: 8B 8D D3 00                           MOV CX, BlockPosX[DI]
+[1437]    0F6B: 8B D1                                 MOV DX, CX
+[1438]    0F6D: 83 C2 1C                              ADD DX, WIDTH
+[1439]    0F70: 89 0E 23 01                           MOV Xpoint1, CX
+[1440]    0F74: 89 16 25 01                           MOV Xpoint2, DX
+[1441]    0F78: 60 8B 0E 23 01 BA 4D 00 B0 00 B4 0C   DrawWithColour Xpoint1, 77D, Xpoint2, 87D, 0
+                BB 57 00 83 EB 4D 8B F3 B7 00 8B 0E 
+                23 01 B7 00 CD 10 41 3B 0E 25 01 76 
+                F5 4E 42 83 FE 00 75 EA 61          
+[1442]    0FA5: EB 62                                 JMP ERASETHESHOTLVL21
+[1443]        :                                       
+[1444]        :                                       
+[1445]    0FA7:                                       REDLVL21:
+[1446]    0FA7: C6 87 FA 00 00                        MOV CLRS21[BX-1], 0        ;ERASE THE BLOCK
+[1447]    0FAC: 8B 8D D3 00                           MOV CX, BlockPosX[DI]
+[1448]    0FB0: 8B D1                                 MOV DX, CX
+[1449]    0FB2: 83 C2 1C                              ADD DX, WIDTH
+[1450]    0FB5: 89 0E 23 01                           MOV Xpoint1, CX
+[1451]    0FB9: 89 16 25 01                           MOV Xpoint2, DX
+[1452]    0FBD: 60 8B 0E 23 01 BA 4D 00 B0 00 B4 0C   DrawWithColour Xpoint1, 77D, Xpoint2, 87D, 0
+                BB 57 00 83 EB 4D 8B F3 B7 00 8B 0E 
+                23 01 B7 00 CD 10 41 3B 0E 25 01 76 
+                F5 4E 42 83 FE 00 75 EA 61          
+[1453]        :                                       
+[1454]    0FEA: 61                                    POPA
+[1455]    0FEB: 60                                    PUSHA
+[1456]    0FEC: 80 FB 01                              CMP BL, 1
+[1457]    0FEF: 74 02                                 JZ INCHEALTH1LVL21
+[1458]    0FF1: 75 0C                                 JNZ INCHEALTH2LVL21
+[1459]        :                                       
+[1460]    0FF3:                                       INCHEALTH1LVL21:
+[1461]    0FF3: FF 06 86 01                           INC PL1HEALTH
+[1462]    0FF7: A1 86 01                              MOV AX, PL1HEALTH
+[1463]    0FFA: E8 36 FD                              CALL DRAWHEALTH
+[1464]    0FFD: EB 0A                                 JMP ERASETHESHOTLVL21
+[1465]        :                                       
+[1466]        :                                       
+[1467]    0FFF:                                       INCHEALTH2LVL21:
+[1468]    0FFF: FF 06 88 01                           INC PL2HEALTH
+[1469]    1003: A1 88 01                              MOV AX, PL2HEALTH
+[1470]    1006: E8 2A FD                              CALL DRAWHEALTH
+[1471]        :                                       
+[1472]        :                                       
+[1473]    1009:                                       ERASETHESHOTLVL21:
+[1474]    1009: 61                                    POPA
+[1475]    100A: 60                                    PUSHA
+[1476]    100B: 80 FB 01                              CMP BL, 1
+[1477]    100E: 74 02                                 JZ ERASEPL1LVL21
+[1478]    1010: 75 12                                 JNZ ERASEPL2LVL21
+[1479]        :                                       
+[1480]        :                                       
+[1481]    1012:                                       ERASEPL1LVL21:
+[1482]    1012: BB 04 00                              MOV BX, 4
+[1483]    1015: 83 EA 03                              SUB DX, 3     ;making Y= the upper pixel coordinate
+[1484]    1018: B0 00                                 	        MOV AL, 0
+[1485]    101A: B4 0C                                 	        MOV AH, 0CH
+[1486]    101C:                                       NXTPXL1LVL21:
+[1487]    101C: CD 10                                 	        INT 10H       ;clearing it with black color
+[1488]    101E: 42                                    INC DX        ;TAKING THE NEXT PIXEL
+[1489]    101F: 4B                                    DEC BX
+[1490]    1020: 75 FA                                 JNZ NXTPXL1LVL21
+[1491]    1022: 74 10                                 JZ FINISHLVL21
+[1492]        :                                       
+[1493]    1024:                                       ERASEPL2LVL21:
+[1494]    1024: BB 04 00                              MOV BX, 4
+[1495]    1027: 83 C2 03                              ADD DX, 3     ;making Y= the upper pixel coordinate
+[1496]    102A: B0 00                                 	        MOV AL, 0
+[1497]    102C: B4 0C                                 	        MOV AH, 0CH
+[1498]    102E:                                       NXTPXL2LVL21:
+[1499]    102E: CD 10                                 	        INT 10H       ;clearing it with black color
+[1500]    1030: 4A                                    DEC DX        ;TAKING THE NEXT PIXEL
+[1501]    1031: 4B                                    DEC BX
+[1502]    1032: 75 FA                                 JNZ NXTPXL2LVL21
+[1503]        :                                       
+[1504]        :                                       
+[1505]    1034:                                       FINISHLVL21:
+[1506]    1034: 61                                    POPA
+[1507]        :                                       
+[1508]    1035: C3                                    RET
+[1509]        :                                       Block1ShotLVL2 ENDP
+[1510]        :                                       ;====================================================================
+[1511]    1036:                                       Block2ShotLVL2      Proc
+[1512]        :                                       
+[1513]    1036: 60                                    PUSHA
+[1514]    1037: BB 0B 00                              MOV BX,11D
+[1515]    103A: BF 14 00                              MOV DI,20D
+[1516]        :                                       
+[1517]        :                                       
+[1518]    103D:                                       CHECKNXTLVL22:
+[1519]    103D: 83 EF 02                              SUB DI,2
+[1520]    1040: 4B                                    DEC BX
+[1521]    1041: 74 34                                 JZ BLACKLVL22                    ;IF ALL BLOCKS ARE CHECKED AND NON WAS HIT, KEEP THE SHOT GOING
+[1522]        :                                       
+[1523]        :                                       
+[1524]    1043: 8B 95 D3 00                           MOV DX, BLOCKPOSX[DI]       ;BLOCKPOSX IS A WORD
+[1525]    1047: 3B CA                                 CMP CX, DX                  ;CX= X OF THE SHOT
+[1526]    1049: 78 F2                                 JS CHECKNXTLVL22                 ;IF X[SHOT]<X[BEGINNING OF THE BLOCK] CHECK THE NEXT BLOCK
+[1527]    104B: 83 C2 1C                              ADD DX, WIDTH
+[1528]    104E: 42                                    INC DX
+[1529]    104F: 3B CA                                 CMP CX, DX
+[1530]    1051: 79 24                                 JNS BLACKLVL22                   ;IF X[SHOT]>X[END OF THE BLOCK] KEEP THE SHOT GOING
+[1531]        :                                       
+[1532]    1053: 80 BF 0E 01 00                        CMP CLRS22[BX-1], 0
+[1533]    1058: 74 1D                                 JZ BLACKLVL22
+[1534]        :                                       
+[1535]    105A: 80 BF 0E 01 0F                        CMP CLRS22[BX-1], 0FH
+[1536]    105F: 74 19                                 JZ WHITELVL22
+[1537]        :                                       
+[1538]    1061: 80 BF 0E 01 08                        CMP CLRS22[BX-1], 08H
+[1539]    1066: 74 58                                 JZ GREYLVL22
+[1540]        :                                       
+[1541]    1068: 80 BF 0E 01 04                        CMP CLRS22[BX-1], 4
+[1542]    106D: 75 03 E9 93 00                        JZ REDLVL22
+[1543]    1072: 74 03 E9 1B 01                        JNZ FINISHLVL22
+[1544]        :                                       
+[1545]        :                                       
+[1546]    1077:                                       BLACKLVL22:
+[1547]    1077: 61                                    POPA
+[1548]    1078: 4E                                    DEC SI                   ;INCREASE THE SHOT POSITION AS A FLAG FOR KEEPING THE SHOT GOING
+[1549]    1079: C3                                    RET
+[1550]        :                                       
+[1551]    107A:                                       WHITELVL22:
+[1552]    107A: C6 87 0E 01 08                        MOV CLRS22[BX-1], 08H       ;CHANGE THE COLOR TO GREY
+[1553]    107F: 8B 8D D3 00                           MOV CX, BlockPosX[DI]
+[1554]    1083: 8B D1                                 MOV DX, CX
+[1555]    1085: 83 C2 1C                              ADD DX, WIDTH
+[1556]    1088: 89 0E 23 01                           MOV Xpoint1, CX
+[1557]    108C: 89 16 25 01                           MOV Xpoint2, DX
+[1558]    1090: 60 8B 0E 23 01 BA 5D 00 B0 08 B4 0C   DrawWithColour Xpoint1, 93D, Xpoint2, 103D, 08h
+                BB 67 00 83 EB 5D 8B F3 B7 00 8B 0E 
+                23 01 B7 00 CD 10 41 3B 0E 25 01 76 
+                F5 4E 42 83 FE 00 75 EA 61          
+[1559]    10BD: E9 A7 00                              JMP ERASETHESHOTLVL22
+[1560]        :                                       
+[1561]    10C0:                                       GREYLVL22:
+[1562]    10C0: C6 87 0E 01 00                        MOV CLRS22[BX-1], 0         ;ERASE THE BLOCK
+[1563]    10C5: 8B 8D D3 00                           MOV CX, BlockPosX[DI]
+[1564]    10C9: 8B D1                                 MOV DX, CX
+[1565]    10CB: 83 C2 1C                              ADD DX, WIDTH
+[1566]    10CE: 89 0E 23 01                           MOV Xpoint1, CX
+[1567]    10D2: 89 16 25 01                           MOV Xpoint2, DX
+[1568]    10D6: 60 8B 0E 23 01 BA 5D 00 B0 00 B4 0C   DrawWithColour Xpoint1, 93D, Xpoint2, 103D, 0
+                BB 67 00 83 EB 5D 8B F3 B7 00 8B 0E 
+                23 01 B7 00 CD 10 41 3B 0E 25 01 76 
+                F5 4E 42 83 FE 00 75 EA 61          
+[1569]    1103: EB 62                                 JMP ERASETHESHOTLVL22
+[1570]        :                                       
+[1571]        :                                       
+[1572]    1105:                                       REDLVL22:
+[1573]    1105: C6 87 0E 01 00                        MOV CLRS22[BX-1], 0        ;ERASE THE BLOCK
+[1574]    110A: 8B 8D D3 00                           MOV CX, BlockPosX[DI]
+[1575]    110E: 8B D1                                 MOV DX, CX
+[1576]    1110: 83 C2 1C                              ADD DX, WIDTH
+[1577]    1113: 89 0E 23 01                           MOV Xpoint1, CX
+[1578]    1117: 89 16 25 01                           MOV Xpoint2, DX
+[1579]    111B: 60 8B 0E 23 01 BA 5D 00 B0 00 B4 0C   DrawWithColour Xpoint1, 93D, Xpoint2, 103D, 0
+                BB 67 00 83 EB 5D 8B F3 B7 00 8B 0E 
+                23 01 B7 00 CD 10 41 3B 0E 25 01 76 
+                F5 4E 42 83 FE 00 75 EA 61          
+[1580]        :                                       
+[1581]    1148: 61                                    POPA
+[1582]    1149: 60                                    PUSHA
+[1583]    114A: 80 FB 01                              CMP BL, 1
+[1584]    114D: 74 02                                 JZ INCHEALTH1LVL22
+[1585]    114F: 75 0C                                 JNZ INCHEALTH2LVL22
+[1586]        :                                       
+[1587]    1151:                                       INCHEALTH1LVL22:
+[1588]    1151: FF 06 86 01                           INC PL1HEALTH
+[1589]    1155: A1 86 01                              MOV AX, PL1HEALTH
+[1590]    1158: E8 D8 FB                              CALL DRAWHEALTH
+[1591]    115B: EB 0A                                 JMP ERASETHESHOTLVL22
+[1592]        :                                       
+[1593]        :                                       
+[1594]    115D:                                       INCHEALTH2LVL22:
+[1595]    115D: FF 06 88 01                           INC PL2HEALTH
+[1596]    1161: A1 88 01                              MOV AX, PL2HEALTH
+[1597]    1164: E8 CC FB                              CALL DRAWHEALTH
+[1598]        :                                       
+[1599]        :                                       
+[1600]    1167:                                       ERASETHESHOTLVL22:
+[1601]    1167: 61                                    POPA
+[1602]    1168: 60                                    PUSHA
+[1603]    1169: 80 FB 01                              CMP BL, 1
+[1604]    116C: 74 02                                 JZ ERASEPL1LVL22
+[1605]    116E: 75 12                                 JNZ ERASEPL2LVL22
+[1606]        :                                       
+[1607]        :                                       
+[1608]    1170:                                       ERASEPL1LVL22:
+[1609]    1170: BB 04 00                              MOV BX, 4
+[1610]    1173: 83 EA 03                              SUB DX, 3     ;making Y= the upper pixel coordinate
+[1611]    1176: B0 00                                 	        MOV AL, 0
+[1612]    1178: B4 0C                                 	        MOV AH, 0CH
+[1613]    117A:                                       NXTPXL1LVL22:
+[1614]    117A: CD 10                                 	        INT 10H       ;clearing it with black color
+[1615]    117C: 42                                    INC DX        ;TAKING THE NEXT PIXEL
+[1616]    117D: 4B                                    DEC BX
+[1617]    117E: 75 FA                                 JNZ NXTPXL1LVL22
+[1618]    1180: 74 10                                 JZ FINISHLVL22
+[1619]        :                                       
+[1620]    1182:                                       ERASEPL2LVL22:
+[1621]    1182: BB 04 00                              MOV BX, 4
+[1622]    1185: 83 C2 03                              ADD DX, 3     ;making Y= the upper pixel coordinate
+[1623]    1188: B0 00                                 	        MOV AL, 0
+[1624]    118A: B4 0C                                 	        MOV AH, 0CH
+[1625]    118C:                                       NXTPXL2LVL22:
+[1626]    118C: CD 10                                 	        INT 10H       ;clearing it with black color
+[1627]    118E: 4A                                    DEC DX        ;TAKING THE NEXT PIXEL
+[1628]    118F: 4B                                    DEC BX
+[1629]    1190: 75 FA                                 JNZ NXTPXL2LVL22
+[1630]        :                                       
+[1631]        :                                       
+[1632]    1192:                                       FINISHLVL22:
+[1633]    1192: 61                                    POPA
+[1634]        :                                       
+[1635]    1193: C3                                    RET
+[1636]        :                                       Block2ShotLVL2 ENDP
+[1637]        :                                       ;====================================================================
+[1638]    1194:                                       UserName1 PROC
+[1639]        :                                       
+[1640]    1194: 60                                    PUSHA
+[1641]        :                                       
+[1642]        :                                       ;moving cursor
+[1643]    1195: B7 00                                 MOV BH, 0
+[1644]    1197: B4 02                                 MOV AH, 2
+[1645]    1199: B2 03                                 MOV DL, 3D
+[1646]    119B: B6 0A                                 MOV DH, 10D
+[1647]    119D: CD 10                                 INT 10H
+[1648]        :                                       
+[1649]        :                                       ;PRINTING MESSAGE
+[1650]        :                                       
+[1651]    119F: B4 09                                 MOV AH , 9
+[1652]    11A1: BA 5B 01                              LEA DX,PLNAME_
+[1653]    11A4: CD 21                                 INT 21H
+[1654]        :                                       
+[1655]        :                                       ;GETTING STRING INPUT FROM KEYBOARD
+[1656]        :                                       
+[1657]    11A6: B4 0A                                 MOV AH,0AH
+[1658]    11A8: BA 29 01                              LEA DX,PL1Name
+[1659]    11AB: CD 21                                 INT 21H
+[1660]        :                                       
+[1661]        :                                       ;ENFORCING THE PROGRAM TO TAKE THE FIRST 8 CHARACTERS
+[1662]        :                                       ;NO WHERE FOR MORE (;
+[1663]        :                                       
+[1664]    11AD: C6 06 31 01 0D                        MOV PL1NAME[8],0DH
+[1665]    11B2: C6 06 32 01 24                        MOV PL1NAME[9],'$'
+[1666]        :                                       
+[1667]    11B7: BE 00 00                              MOV SI, 0
+[1668]    11BA: BB 29 01                              LEA BX, PL1NAME
+[1669]    11BD: 83 C3 02                              ADD BX, 2
+[1670]        :                                       
+[1671]    11C0:                                       CalcSize1:
+[1672]    11C0: 80 3F 0D                              CMP [BX], 0DH
+[1673]    11C3: 74 04                                 JZ CalcSize1Done
+[1674]    11C5: 46                                    INC SI
+[1675]    11C6: 43                                    INC BX
+[1676]    11C7: EB F7                                 JMP CalcSize1
+[1677]        :                                       
+[1678]    11C9:                                       CalcSize1Done:
+[1679]        :                                       
+[1680]    11C9: 8B CE                                 MOV CX, SI
+[1681]    11CB: 88 0E 28 01                           MOV ACT1SIZE, CL
+[1682]        :                                       
+[1683]    11CF: 61                                    POPA
+[1684]        :                                       
+[1685]    11D0: C3                                    RET
+[1686]        :                                       UserName1 ENDP
+[1687]        :                                       ;====================================================================
+[1688]    11D1:                                       SendAndRec  PROC
+[1689]        :                                       
+[1690]    11D1: 60                                    PUSHA
+[1691]        :                                       ;not wait for input
+[1692]    11D2: B4 01                                 MOV AH,1
+[1693]    11D4: CD 16                                 INT 16H
+[1694]        :                                       ;lw mfe4 7aga to send, check l recieve
+[1695]    11D6: 74 1B                                 JZ recieveData
+[1696]        :                                       ;fe 7aga etktbt fe ah, 7utaha fe sentData
+[1697]    11D8: 88 26 05 00                           mov sentData, ah
+[1698]        :                                       ;Clear buffer
+[1699]    11DC: B4 0C                                 MOV AH,0CH
+[1700]    11DE: B0 00                                 MOV AL,0
+[1701]    11E0: CD 21                                 INT 21H
+[1702]    11E2: BA FD 03                              MOV DX,3FDH
+[1703]        :                                       
+[1704]    11E5:                                       sendData:
+[1705]        :                                       ;Check status of transmitter holding reg.
+[1706]    11E5: EC                                    IN AL,DX
+[1707]    11E6: 24 20                                 AND AL,00100000B
+[1708]    11E8: 74 FB                                 JZ sendData ;wait till l holding reg. yfda
+[1709]        :                                       
+[1710]        :                                       ;send what is in sentData to transmit data reg.
+[1711]    11EA: BA F8 03                              MOV DX,3F8H
+[1712]    11ED: A0 05 00                              MOV AL,sentData
+[1713]    11F0: EE                                    OUT DX,AL
+[1714]        :                                       ;o5rog mn l proc.
+[1715]    11F1: EB 0F                                 JMP escapeData
+[1716]        :                                       
+[1717]    11F3:                                       recieveData:
+[1718]    11F3: BA FD 03                              MOV DX,3FDH
+[1719]        :                                       ;check fe data to recieve wla l2
+[1720]    11F6: EC                                    IN AL,DX
+[1721]    11F7: 24 01                                 AND AL,1
+[1722]        :                                       ;lw l2 o5rog
+[1723]    11F9: 74 07                                 JZ escapeData
+[1724]        :                                       ;lw ah, estlm l byte fe al we 7uteha fe recData
+[1725]    11FB: BA F8 03                              MOV DX,3F8H
+[1726]    11FE: EC                                    IN AL,DX
+[1727]    11FF: A2 06 00                              MOV RecData, AL
+[1728]        :                                       
+[1729]    1202:                                       escapeData:
+[1730]    1202: 61                                    POPA
+[1731]    1203: C3                                    RET
+[1732]        :                                       SendAndRec  ENDP
+[1733]        :                                       ;====================================================================
+[1734]    1204:                                       SendOrRec  PROC
+[1735]        :                                       
+[1736]    1204:                                       startAgain:
+[1737]        :                                       ;not wait for input
+[1738]    1204: B4 01                                 MOV AH,1
+[1739]    1206: CD 16                                 INT 16H
+[1740]        :                                       ;lw mfe4 7aga to send, check l recieve
+[1741]    1208: 74 1B                                 JZ recieveData2
+[1742]        :                                       ;fe 7aga etktbt fe ah, 7utaha fe sentData
+[1743]    120A: 88 26 05 00                           mov sentData, ah
+[1744]        :                                       ;Clear buffer
+[1745]    120E: B4 0C                                 MOV AH,0CH
+[1746]    1210: B0 00                                 MOV AL,0
+[1747]    1212: CD 21                                 INT 21H
+[1748]    1214: BA FD 03                              MOV DX,3FDH
+[1749]        :                                       
+[1750]    1217:                                       sendData2:
+[1751]        :                                       ;Check status of transmitter holding reg.
+[1752]    1217: EC                                    IN AL,DX
+[1753]    1218: 24 20                                 AND AL,00100000B
+[1754]    121A: 74 FB                                 JZ sendData2 ;wait till l holding reg. yfda
+[1755]        :                                       
+[1756]        :                                       ;send what is in sentData to transmit data reg.
+[1757]    121C: BA F8 03                              MOV DX,3F8H
+[1758]    121F: A0 05 00                              MOV AL,sentData
+[1759]    1222: EE                                    OUT DX,AL
+[1760]        :                                       ;o5rog mn l proc.
+[1761]    1223: EB 0F                                 JMP escapeData2
+[1762]        :                                       
+[1763]    1225:                                       recieveData2:
+[1764]    1225: BA FD 03                              MOV DX,3FDH
+[1765]        :                                       ;check fe data to recieve wla l2
+[1766]    1228: EC                                    IN AL,DX
+[1767]    1229: 24 01                                 AND AL,1
+[1768]        :                                       ;lw l2 o5rog
+[1769]    122B: 74 D7                                 JZ startAgain
+[1770]        :                                       ;lw ah, estlm l byte fe al we 7uteha fe recData
+[1771]    122D: BA F8 03                              MOV DX,3F8H
+[1772]    1230: EC                                    IN AL,DX
+[1773]    1231: A2 06 00                              MOV RecData, AL
+[1774]        :                                       
+[1775]    1234:                                       escapeData2:
+[1776]    1234: C3                                    RET
+[1777]        :                                       SendOrRec  ENDP
+[1778]        :                                       ;====================================================================
+[1779]    1235:                                       WaitPl2Connect  PROC
+[1780]        :                                       
+[1781]        :                                       ;moving cursor
+[1782]    1235: B7 00                                 MOV BH, 0
+[1783]    1237: B4 02                                 MOV AH, 2
+[1784]    1239: B2 03                                 MOV DL, 3D
+[1785]    123B: B6 0C                                 MOV DH, 12D
+[1786]    123D: CD 10                                 INT 10H
+[1787]        :                                       
+[1788]        :                                       ;PRINTING MESSAGE
+[1789]        :                                       
+[1790]    123F: B4 09                                 MOV AH , 9
+[1791]    1241: BA 67 01                              LEA DX,WaitPl2
+[1792]    1244: CD 21                                 INT 21H
+[1793]        :                                       
+[1794]        :                                       
+[1795]    1246:                                       WaitToRecieve:
+[1796]    1246: BA FD 03                              MOV DX,3FDH
+[1797]        :                                       ;check fe data to recieve wla l2
+[1798]    1249: EC                                    IN AL,DX
+[1799]    124A: 24 01                                 AND AL,1
+[1800]        :                                       ;lw l2 wait
+[1801]    124C: 74 F8                                 JZ WaitToRecieve
+[1802]        :                                       ;lw ah, estlm l byte fe al
+[1803]    124E: BA F8 03                              MOV DX,3F8H
+[1804]    1251: EC                                    IN AL,DX
+[1805]        :                                       ;m4 hn5rug 8er lw l estlmto da down button
+[1806]        :                                       ;w da m3naha en l user l tany d5l l name bta3o
+[1807]    1252: 3C 50                                 CMP AL, 50H
+[1808]    1254: 75 F0                                 JNZ WaitToRecieve
+[1809]        :                                       
+[1810]    1256: C3                                    RET
+[1811]        :                                       WaitPl2Connect  ENDP
+[1812]        :                                       ;====================================================================
+[1813]    1257:                                       RecieveUserName2  PROC
+[1814]        :                                       ;recieve Act2Size (size of username2)
+[1815]        :                                       
+[1816]    1257:                                       RecSize2:
+[1817]    1257: BA FD 03                              MOV DX,3FDH
+[1818]        :                                       ;check fe data to recieve wla l2
+[1819]    125A: EC                                    IN AL,DX
+[1820]    125B: 24 01                                 AND AL,1
+[1821]    125D: 74 F8                                 JZ RecSize2 ;wait till I recieve size
+[1822]        :                                       
+[1823]        :                                       ;recieve l size fe AL
+[1824]    125F: BA F8 03                              MOV DX,3F8H
+[1825]    1262: EC                                    IN AL,DX
+[1826]        :                                       ;7ut l size fe ACT2SIZE
+[1827]    1263: A2 3E 01                              MOV ACT2SIZE, AL
+[1828]        :                                       
+[1829]        :                                       ;Now, 3yzen n-loop 3la 7rof l name w send it
+[1830]    1266: 8A 0E 3E 01                           MOV CL, ACT2SIZE
+[1831]    126A: BB 3F 01                              LEA BX, PL2Name
+[1832]    126D: 83 C3 02                              ADD BX, 2
+[1833]        :                                       
+[1834]    1270:                                       RecUser2Loop:
+[1835]    1270: BA FD 03                              MOV DX, 3FDH
+[1836]        :                                       ;check fe data to recieve wla l2
+[1837]    1273: EC                                    IN AL,DX
+[1838]    1274: 24 01                                 AND AL,1
+[1839]    1276: 74 F8                                 JZ RecUser2Loop
+[1840]        :                                       
+[1841]        :                                       ;recieve awl 7rf w 7utu fe PL2Name
+[1842]    1278: BA F8 03                              MOV DX,3F8H
+[1843]    127B: EC                                    IN AL,DX
+[1844]    127C: 88 07                                 MOV [BX], AL
+[1845]        :                                       ;incerements
+[1846]    127E: 43                                    INC BX
+[1847]    127F: FE C9                                 DEC CL
+[1848]    1281: 75 ED                                 JNZ RecUser2Loop
+[1849]        :                                       
+[1850]    1283: C3                                    RET
+[1851]        :                                       RecieveUserName2  ENDP
+[1852]        :                                       ;====================================================================
+[1853]    1284:                                       SendUserName1  PROC
+[1854]        :                                       
+[1855]        :                                       ;send Act1Size (size of username1)
+[1856]    1284: BA FD 03                              MOV DX,3FDH
+[1857]        :                                       
+[1858]    1287:                                       sendSize1:
+[1859]        :                                       ;Check status of transmitter holding reg.
+[1860]    1287: EC                                    IN AL,DX
+[1861]    1288: 24 20                                 AND AL,00100000B
+[1862]    128A: 74 FB                                 JZ sendSize1 ;wait till l holding reg. yfda
+[1863]        :                                       
+[1864]        :                                       ;send what is in sentData to transmit data reg.
+[1865]    128C: BA F8 03                              MOV DX,3F8H
+[1866]    128F: A0 28 01                              MOV AL,ACT1SIZE
+[1867]    1292: EE                                    OUT DX,AL
+[1868]        :                                       
+[1869]        :                                       ;Now, 3yzen n-loop 3la 7rof l name w send it
+[1870]    1293: BA FD 03                              MOV DX,3FDH
+[1871]    1296: 8A 0E 28 01                           MOV CL, ACT1SIZE
+[1872]    129A: BB 29 01                              LEA BX, PL1Name
+[1873]    129D: 83 C3 02                              ADD BX, 2
+[1874]        :                                       
+[1875]    12A0:                                       sendUser1Loop:
+[1876]        :                                       ;Check status of transmitter holding reg.
+[1877]    12A0: EC                                    IN AL,DX
+[1878]    12A1: 24 20                                 AND AL,00100000B
+[1879]    12A3: 74 FB                                 JZ sendUser1Loop ;wait till l holding reg. yfda
+[1880]        :                                       
+[1881]        :                                       ;send 7rf 7rf mn PL1Name
+[1882]    12A5: BA F8 03                              MOV DX,3F8H
+[1883]    12A8: 8A 07                                 MOV AL,[BX]
+[1884]    12AA: EE                                    OUT DX,AL
+[1885]        :                                       ;incerements
+[1886]    12AB: BA FD 03                              MOV DX,3FDH
+[1887]    12AE: 43                                    INC BX
+[1888]    12AF: FE C9                                 DEC CL
+[1889]    12B1: 75 ED                                 JNZ sendUser1Loop
+[1890]        :                                       
+[1891]    12B3: C3                                    RET
+[1892]        :                                       SendUserName1  ENDP
+[1893]        :                                       ;====================================================================
+[1894]        :                                       
+[1895]    12B4:                                       chat_ proc
+[1896]        :                                       
+[1897]    12B4: 60                                    pusha
+[1898]        :                                       
+[1899]        :                                       ;graphicAL mode
+[1900]        :                                       
+[1901]    12B5: B7 00                                 MOV BH, 0
+[1902]    12B7: B4 00                                 MOV ah , 0
+[1903]    12B9: B0 03                                 MOV AL , 03h
+[1904]    12BB: CD 10                                 INT 10h
+[1905]        :                                       
+[1906]        :                                       
+[1907]        :                                       ;CLEAR SCREEN
+[1908]        :                                       
+[1909]    12BD: B8 00 06                              mov ax,0600h
+[1910]    12C0: B7 07                                 mov bh,07
+[1911]    12C2: B9 00 00                              mov cx,0
+[1912]    12C5: BA 4F 18                              mov dx,184FH
+[1913]    12C8: CD 10                                 INT 10H
+[1914]        :                                       
+[1915]        :                                       
+[1916]        :                                       ;MOV CURSOR to position 0c00h(almost the middle of the screen)
+[1917]        :                                       
+[1918]    12CA: B4 02                                 mov ah,2
+[1919]    12CC: B7 00                                 MOV BH , 0
+[1920]    12CE: BA 00 0C                              mov dx,0C00H
+[1921]    12D1: CD 10                                 INT 10H
+[1922]        :                                       
+[1923]        :                                       ;DIVIDE THE SCREEN with a line( printing "_" with the width of screen )
+[1924]        :                                       
+[1925]    12D3: B9 4F 00                              MOV CX , 4FH
+[1926]    12D6:                                       AG:
+[1927]        :                                       
+[1928]    12D6: CD 10                                 INT 10H
+[1929]        :                                       
+[1930]    12D8: 8A DA                                 MOV BL,DL
+[1931]        :                                       
+[1932]    12DA: B2 C4                                 mov dl , 0C4H
+[1933]    12DC: CD 21                                 int 21h
+[1934]        :                                       
+[1935]    12DE: 8A D3                                 MOV DL , BL
+[1936]        :                                       
+[1937]    12E0: FE C2                                 INC DL
+[1938]        :                                       
+[1939]        :                                       
+[1940]    12E2: E2 F2                                 LOOP AG
+[1941]        :                                       
+[1942]        :                                       ;moving cursor
+[1943]        :                                       
+[1944]    12E4: B4 02                                 mov ah,2
+[1945]    12E6: B7 00                                 MOV BH , 0
+[1946]    12E8: BA 00 00                              mov dx,0000H
+[1947]    12EB: CD 10                                 INT 10H
+[1948]        :                                       
+[1949]        :                                       ;printing User1 name
+[1950]    12ED: B7 00                                 mov bh , 0
+[1951]    12EF: BA 29 01                              lea dx , PL1NAME
+[1952]    12F2: 83 C2 02                              ADD DX, 2
+[1953]    12F5: B4 09                                 mov ah , 09
+[1954]    12F7: CD 21                                 int 21h
+[1955]        :                                       
+[1956]        :                                       ;moving cursor
+[1957]        :                                       
+[1958]    12F9: B4 02                                 mov ah,2
+[1959]    12FB: B7 00                                 MOV BH , 0
+[1960]    12FD: BA 00 0D                              mov dx,0D00H
+[1961]    1300: CD 10                                 INT 10H
+[1962]        :                                       
+[1963]        :                                       ;printing User2 name
+[1964]    1302: B7 00                                 mov bh , 0
+[1965]    1304: BA 3F 01                              lea dx , PL2NAME
+[1966]    1307: 83 C2 02                              ADD DX, 2
+[1967]    130A: B4 09                                 mov ah , 09
+[1968]    130C: CD 21                                 int 21h
+[1969]        :                                       
+[1970]        :                                       
+[1971]        :                                       ;MOV CURSOR to position 0100h
+[1972]        :                                       
+[1973]    130E: B4 02                                 mov ah,2
+[1974]    1310: B7 00                                 MOV BH , 0
+[1975]    1312: BA 00 01                              mov dx,0100H
+[1976]    1315: CD 10                                 INT 10H
+[1977]        :                                       
+[1978]        :                                       ;draw line
+[1979]        :                                       
+[1980]    1317: B9 4F 00                              MOV CX , 4FH
+[1981]    131A:                                       AG1:
+[1982]        :                                       
+[1983]    131A: CD 10                                 INT 10H
+[1984]        :                                       
+[1985]    131C: 8A DA                                 MOV BL,DL
+[1986]        :                                       
+[1987]    131E: B2 C4                                 mov dl , 0C4H
+[1988]    1320: CD 21                                 int 21h
+[1989]        :                                       
+[1990]    1322: 8A D3                                 MOV DL , BL
+[1991]        :                                       
+[1992]    1324: FE C2                                 INC DL
+[1993]        :                                       
+[1994]        :                                       
+[1995]    1326: E2 F2                                 LOOP AG1
+[1996]        :                                       
+[1997]        :                                       
+[1998]        :                                       ;MOV CURSOR to position 0F00h
+[1999]        :                                       
+[2000]    1328: B4 02                                 mov ah,2
+[2001]    132A: B7 00                                 MOV BH , 0
+[2002]    132C: BA 00 0E                              mov dx,0E00H
+[2003]    132F: CD 10                                 INT 10H
+[2004]        :                                       
+[2005]        :                                       ;draw line
+[2006]        :                                       
+[2007]    1331: B9 4F 00                              MOV CX , 4FH
+[2008]    1334:                                       AG2:
+[2009]        :                                       
+[2010]    1334: CD 10                                 INT 10H
+[2011]        :                                       
+[2012]    1336: 8A DA                                 MOV BL,DL
+[2013]        :                                       
+[2014]    1338: B2 C4                                 mov dl , 0C4H
+[2015]    133A: CD 21                                 int 21h
+[2016]        :                                       
+[2017]    133C: 8A D3                                 MOV DL , BL
+[2018]        :                                       
+[2019]    133E: FE C2                                 INC DL
+[2020]        :                                       
+[2021]        :                                       
+[2022]    1340: E2 F2                                 LOOP AG2
+[2023]        :                                       
+[2024]        :                                       ;Configuration
+[2025]        :                                       ;-----------------------------------------------------------------------------------------------------------
+[2026]        :                                       ;-----------------------------------------------------------------------------------------------------------
+[2027]        :                                       
+[2028]        :                                       ; Set Divisor Latch Access Bit
+[2029]        :                                       
+[2030]    1342: BA FB 03                              mov dx,3fbh 			; Line Control Register
+[2031]    1345: B0 80                                 mov al,10000000b		;Set Divisor Latch Access Bit
+[2032]    1347: EE                                    out dx,al			    ;Out it
+[2033]        :                                       
+[2034]        :                                       ;Set LSB byte of the Baud Rate Divisor Latch register.
+[2035]        :                                       
+[2036]    1348: BA F8 03                              mov dx,3f8h			
+[2037]    134B: B0 0C                                 mov al,0ch			
+[2038]    134D: EE                                    out dx,al
+[2039]        :                                       
+[2040]        :                                       ;Set MSB byte of the Baud Rate Divisor Latch register.
+[2041]        :                                       
+[2042]    134E: BA F9 03                              mov dx,3f9h
+[2043]    1351: B0 00                                 mov al,00h
+[2044]    1353: EE                                    out dx,al
+[2045]        :                                       
+[2046]        :                                       ;Set port configuration
+[2047]        :                                       
+[2048]    1354: BA FB 03                              mov dx,3fbh
+[2049]    1357: B0 1B                                 mov al,00011011b
+[2050]        :                                       
+[2051]    1359: EE                                    out dx,al
+[2052]        :                                       
+[2053]        :                                       
+[2054]        :                                       ;send $ receive logic
+[2055]        :                                       ;_----------------------------------------------------------------------------------------------------------
+[2056]        :                                       ;----------------------------------------------------------------------------------------------------------
+[2057]        :                                       
+[2058]        :                                       
+[2059]        :                                       
+[2060]        :                                       
+[2061]    135A:                                       Send:
+[2062]        :                                       
+[2063]        :                                       
+[2064]        :                                       ;MOV CURSOR to send pos
+[2065]    135A: B4 02                                 mov ah,2
+[2066]    135C: B7 00                                 MOV BH , 0
+[2067]    135E: 8B 16 00 00                           mov dx,SENDPOS
+[2068]    1362: CD 10                                 INT 10H
+[2069]        :                                       
+[2070]        :                                       ;take input from keyboard(don't wait!)
+[2071]        :                                       
+[2072]    1364: B4 01                                 mov ah,1
+[2073]    1366: 8A DC                                 mov bl , ah
+[2074]    1368: CD 16                                 int 16h
+[2075]        :                                       
+[2076]    136A: 3A DC                                 cmp bl , ah  ;see if there is an input or not!
+[2077]    136C: 74 79                                 jz Receive   ;if not go to receive!!!
+[2078]        :                                       
+[2079]    136E: 80 FC 4F                              cmp ah , 4fh ;pressing end exit chat
+[2080]    1371: 75 02                                 jnz notend
+[2081]        :                                       
+[2082]    1373: 8A C4                                 mov al , ah
+[2083]        :                                       
+[2084]    1375:                                       notend:
+[2085]        :                                       
+[2086]    1375: A2 04 00                              mov value , al
+[2087]        :                                       
+[2088]        :                                       
+[2089]        :                                       ;CLEARING BUFFER
+[2090]        :                                       
+[2091]    1378: B4 0C                                 MOV AH,0CH
+[2092]    137A: B0 00                                 MOV AL,0
+[2093]    137C: CD 21                                 INT 21H
+[2094]        :                                       
+[2095]        :                                       ;printing the character on the sender'screen
+[2096]        :                                       
+[2097]        :                                       ;------------------------------------------------------------------------------------------------------------
+[2098]        :                                       
+[2099]        :                                       ;compare if enter then send newline
+[2100]        :                                       
+[2101]    137E: 80 3E 04 00 0D                        cmp value , 0Dh
+[2102]    1383: 75 05                                 jnz m
+[2103]    1385: C6 06 04 00 0A                        mov value , 10
+[2104]        :                                       
+[2105]    138A:                                       m:
+[2106]        :                                       
+[2107]        :                                       ;see if backspace
+[2108]        :                                       	
+[2109]        :                                       		
+[2110]    138A: 80 3E 04 00 08                        	cmp value , 08h
+[2111]    138F: 75 0C                                 	jnz print       ;no go and print
+[2112]        :                                       	
+[2113]        :                                       	;yes?!
+[2114]        :                                       	;print it then space to clear character
+[2115]        :                                       		
+[2116]    1391: B4 02                                 	mov ah , 2
+[2117]    1393: 8A 16 04 00                           mov dl , value
+[2118]    1397: CD 21                                 int 21h
+[2119]        :                                       
+[2120]        :                                       ;print space
+[2121]    1399: B2 20                                 mov dl , 20h
+[2122]    139B: CD 21                                 int 21h
+[2123]        :                                       
+[2124]    139D:                                       print:
+[2125]        :                                       
+[2126]    139D: B4 02                                 mov ah , 2
+[2127]    139F: 8A 16 04 00                           mov dl , value
+[2128]    13A3: CD 21                                 int 21h
+[2129]        :                                       
+[2130]        :                                       ;GET CURSOR POS(the new position of the cursor!)
+[2131]    13A5: B4 03                                 mov ah,3h
+[2132]    13A7: B7 00                                 mov bh,0h
+[2133]    13A9: CD 10                                 INT 10H
+[2134]    13AB: 89 16 00 00                           MOV SENDPOS , DX
+[2135]        :                                       
+[2136]        :                                       ;send
+[2137]        :                                       ;---------------------------------------------------------------------------------------------------------
+[2138]        :                                       
+[2139]    13AF: BA FD 03                              mov dx , 3FDH		; Line Status Register
+[2140]        :                                       
+[2141]        :                                       
+[2142]    13B2:                                       AGAIN:
+[2143]        :                                       	
+[2144]        :                                       
+[2145]    13B2: EC                                    In al , dx 			;Read Line Status
+[2146]    13B3: 24 20                                 		AND al , 00100000b
+[2147]    13B5: 74 FB                                 		JZ AGAIN
+[2148]        :                                       		
+[2149]        :                                       ;If empty put the VALUE in Transmit data register
+[2150]        :                                       	
+[2151]    13B7: BA F8 03                              	mov dx  , 3F8H		; Transmit data register
+[2152]    13BA: A0 04 00                              	mov  al , value
+[2153]    13BD: EE                                    	out dx  , al
+[2154]        :                                       	
+[2155]    13BE: 80 3E 04 00 4F                        	cmp value , 4fh
+[2156]    13C3: 75 03 E9 AA 00                        	jz exitchat
+[2157]        :                                       	
+[2158]        :                                       	
+[2159]        :                                       	;if reached the middle of screen scroll the top half !
+[2160]        :                                       	
+[2161]    13C8: 80 3E 01 00 0C                        	CMP BYTE PTR SENDPOS[1] , 0CH
+[2162]    13CD: 74 02                                 JZ SCROLL
+[2163]    13CF: EB 16                                 JMP Receive
+[2164]        :                                       
+[2165]        :                                       
+[2166]    13D1:                                       SCROLL:
+[2167]        :                                       
+[2168]        :                                       ;SCROLL
+[2169]        :                                       
+[2170]    13D1: B4 06                                 mov ah,06h
+[2171]    13D3: B0 01                                 mov al,01h
+[2172]    13D5: B7 07                                 mov bh,07h
+[2173]    13D7: B3 00                                 mov bl,0h
+[2174]    13D9: B9 00 02                              mov cx,0200h
+[2175]    13DC: BA 4F 0B                              mov dx,0B4FH
+[2176]    13DF: CD 10                                 INT 10H
+[2177]        :                                       
+[2178]        :                                       
+[2179]    13E1: C7 06 00 00 00 0B                     mov SENDPOS , 0B00H
+[2180]        :                                       	
+[2181]        :                                       	                                          ;Receive
+[2182]        :                                       ;------------------------------------------------------------------------------------------------------------
+[2183]        :                                       ;------------------------------------------------------------------------------------------------------------
+[2184]        :                                       	
+[2185]        :                                       	
+[2186]    13E7:                                       Receive:
+[2187]        :                                       
+[2188]        :                                       
+[2189]        :                                       
+[2190]        :                                       
+[2191]        :                                       ;MOV CURSOR
+[2192]        :                                       
+[2193]    13E7: B4 02                                 mov ah,2
+[2194]    13E9: B7 00                                 MOV BH , 0
+[2195]    13EB: 8B 16 02 00                           mov dx,RECPOS
+[2196]    13EF: CD 10                                 INT 10H
+[2197]        :                                       
+[2198]        :                                       
+[2199]        :                                       
+[2200]    13F1: BA FD 03                              mov dx , 3FDH		; Line Status Register
+[2201]        :                                       
+[2202]    13F4:                                       	CHK:
+[2203]        :                                       		
+[2204]    13F4: EC                                    	    in al , dx
+[2205]    13F5: 24 01                                 		AND al , 1
+[2206]    13F7: 75 03 E9 5E FF                        		JZ Send   ;if not ready to receive go to send
+[2207]        :                                       
+[2208]        :                                       ;If Ready read the VALUE in Receive data register
+[2209]        :                                       		
+[2210]    13FC: BA F8 03                              		mov dx , 03F8H
+[2211]    13FF: EC                                    		in al , dx
+[2212]    1400: A2 04 00                              		mov value , al
+[2213]        :                                       		
+[2214]    1403: 80 3E 04 00 4F                        		cmp value , 4fh
+[2215]    1408: 74 68                                 		jz exitchat
+[2216]        :                                       		
+[2217]        :                                       		;check the ascii code if(between 20h - 7Eh ) the logic characters to chat
+[2218]        :                                       		
+[2219]    140A: 80 3E 04 00 20                        		CMP value , 20h
+[2220]    140F: 72 09                                 		jb chkmore1     ;if below go and see if enter or backspace
+[2221]    1411: 80 3E 04 00 7E                        		cmp value , 7Eh
+[2222]    1416: 77 2D                                 		ja over         ;if above don't print
+[2223]        :                                       		
+[2224]    1418: EB 23                                 		jmp print2    ;if in the range go and print
+[2225]        :                                       		
+[2226]        :                                       		
+[2227]    141A:                                       		chkmore1:
+[2228]        :                                       		
+[2229]    141A: 80 3E 04 00 0A                        		cmp value , 0Ah ;if enter
+[2230]    141F: 75 09                                 		jnz chkmore2    ;no?
+[2231]        :                                       		
+[2232]        :                                       		;see if cursor in the beginning of the line so don't go down again!!
+[2233]    1421: 80 3E 02 00 00                        		cmp byte ptr RECPOS , 0
+[2234]    1426: 74 1D                                 		jz over
+[2235]    1428: EB 13                                 		jmp print2
+[2236]        :                                       		
+[2237]        :                                       		
+[2238]        :                                       		
+[2239]        :                                       		;see if backspace
+[2240]    142A:                                       		chkmore2:
+[2241]        :                                       		
+[2242]    142A: 80 3E 04 00 08                        		cmp value , 08h
+[2243]    142F: 75 14                                 		jnz over
+[2244]        :                                       		
+[2245]    1431: B4 02                                 		mov ah , 2
+[2246]    1433: 8A 16 04 00                           mov dl , value
+[2247]    1437: CD 21                                 int 21h
+[2248]        :                                       
+[2249]        :                                       ;print space
+[2250]    1439: B2 20                                 mov dl , 20h
+[2251]    143B: CD 21                                 int 21h
+[2252]        :                                       
+[2253]        :                                       		
+[2254]        :                                       
+[2255]        :                                       
+[2256]    143D:                                       print2:
+[2257]        :                                       
+[2258]    143D: B4 02                                 mov ah , 2
+[2259]    143F: 8A 16 04 00                           mov dl , value
+[2260]    1443: CD 21                                 int 21h
+[2261]        :                                       
+[2262]    1445:                                       over:
+[2263]        :                                       
+[2264]        :                                       ;GET CURSOR POS
+[2265]        :                                       
+[2266]    1445: B4 03                                 mov ah,3h
+[2267]    1447: B7 00                                 mov bh,0h
+[2268]    1449: CD 10                                 INT 10H
+[2269]    144B: 89 16 02 00                           MOV RECPOS , DX
+[2270]        :                                       
+[2271]    144F: 80 3E 03 00 18                        CMP BYTE PTR RECPOS[1] , 18H ;if reached the bottom of the screen go and scroll up the down half!
+[2272]    1454: 74 03                                 JZ SCROL2
+[2273]    1456: E9 01 FF                              JMP Send
+[2274]        :                                       
+[2275]        :                                       
+[2276]    1459:                                       SCROL2:
+[2277]        :                                       
+[2278]        :                                       ;SCROLL
+[2279]        :                                       
+[2280]    1459: B4 06                                 mov ah,06h
+[2281]    145B: B0 01                                 mov al,01h
+[2282]    145D: B7 07                                 mov bh,07h
+[2283]    145F: B3 00                                 mov bl,0h
+[2284]    1461: B9 00 0F                              mov cx,0f00h
+[2285]    1464: BA 4F 18                              mov dx,184FH
+[2286]    1467: CD 10                                 INT 10H
+[2287]        :                                       
+[2288]        :                                       
+[2289]    1469: C7 06 02 00 00 17                     mov RECPOS , 1700H
+[2290]        :                                       
+[2291]        :                                       
+[2292]        :                                       
+[2293]    146F: E9 E8 FE                              jmp Send
+[2294]        :                                       
+[2295]        :                                       
+[2296]        :                                       
+[2297]        :                                       
+[2298]    1472:                                       exitchat:
+[2299]        :                                       
+[2300]        :                                       ;CLEARING BUFFER
+[2301]        :                                       
+[2302]    1472: B4 0C                                 MOV AH,0CH
+[2303]    1474: B0 00                                 MOV AL,0
+[2304]    1476: CD 21                                 INT 21H
+[2305]        :                                       
+[2306]    1478: 61                                    popa
+[2307]    1479: C3                                    ret
+[2308]        :                                       chat_ endp
+[2309]        :                                       
+[2310]        :                                       ;-----------------------------------------------------------------------------------------------------------
+[2311]        :                                       ;-----------------------------------------------------------------------------------------------------------
+[2312]        :                                       
+[2313]    147A:                                       DrawStatusBar proc
+[2314]        :                                       
+[2315]        :                                       
+[2316]    147A: 60                                    pusha
+[2317]        :                                       
+[2318]        :                                       ;clear status bar
+[2319]        :                                       
+[2320]    147B: 60 B9 00 00 BA B5 00 B0 00 B4 0C BB   DrawWithColour 0d,181D,320D,200D,0H
+                C8 00 81 EB B5 00 8B F3 B7 00 B9 00 
+                00 B7 00 CD 10 41 81 F9 40 01 76 F5 
+                4E 42 83 FE 00 75 EB 61             
+[2321]        :                                       
+[2322]    14A7: 60 B9 00 00 BA B4 00 B0 0F B4 0C BB   DrawWithColour 0d,180D,320D,181D,0FH
+                B5 00 81 EB B4 00 8B F3 B7 00 B9 00 
+                00 B7 00 CD 10 41 81 F9 40 01 76 F5 
+                4E 42 83 FE 00 75 EB 61             
+[2323]        :                                       
+[2324]        :                                       
+[2325]        :                                       ;moving cursor
+[2326]        :                                       
+[2327]    14D3: B7 00                                 MOV BH, 0
+[2328]    14D5: B4 02                                 MOV AH, 2
+[2329]    14D7: B2 00                                 MOV DL, 0    ;x position
+[2330]    14D9: B6 17                                 MOV DH, 23D  ;y position
+[2331]    14DB: CD 10                                 INT 10H
+[2332]        :                                       
+[2333]    14DD: 02 16 28 01                           ADD DL, ACT1SIZE
+[2334]    14E1: 80 C2 02                              add Dl , 2
+[2335]    14E4: 89 16 53 01                           MOV HEART1POS,DX   ;STORING THE POSITION OF THE FIRST HEART TO DRAW
+[2336]        :                                       
+[2337]        :                                       ;printing text
+[2338]        :                                       
+[2339]    14E8: B7 00                                 MOV BH, 0
+[2340]    14EA: B4 09                                 MOV AH, 9
+[2341]    14EC: BA 29 01                              MOV DX, OFFSET Pl1NAME
+[2342]    14EF: 83 C2 02                              ADD DX, 2
+[2343]    14F2: CD 21                                 INT 21H
+[2344]        :                                       
+[2345]        :                                       ;moving cursor
+[2346]        :                                       
+[2347]    14F4: B7 00                                 MOV BH, 0
+[2348]    14F6: B4 02                                 MOV AH, 2
+[2349]    14F8: B2 14                                 MOV DL, 20D
+[2350]    14FA: B6 17                                 MOV DH, 23D
+[2351]    14FC: CD 10                                 INT 10H
+[2352]        :                                       
+[2353]    14FE: 02 16 3E 01                           ADD DL, ACT2SIZE
+[2354]    1502: 80 C2 02                              add dl , 2
+[2355]    1505: 89 16 55 01                           MOV HEART2POS,DX   ;STORING THE POSITION OF THE FIRST HEART TO DRAW
+[2356]        :                                       
+[2357]        :                                       ;printing text
+[2358]        :                                       
+[2359]    1509: B7 00                                 MOV BH, 0
+[2360]    150B: B4 09                                 MOV AH, 9
+[2361]    150D: BA 3F 01                              MOV DX, OFFSET Pl2NAME
+[2362]    1510: 83 C2 02                              ADD DX, 2
+[2363]    1513: CD 21                                 INT 21H
+[2364]        :                                       
+[2365]        :                                       
+[2366]    1515: A1 86 01                              MOV AX, Pl1Health
+[2367]    1518: B3 01                                 MOV BL, 1             ;if Bl=1 palyer one health
+[2368]    151A: E8 16 F8                              CALL DrawHealth
+[2369]        :                                       
+[2370]        :                                       
+[2371]    151D: A1 88 01                              MOV AX, Pl2Health
+[2372]    1520: B3 02                                 MOV BL, 2             ;if bl = 2 player 2 health
+[2373]    1522: E8 0E F8                              CALL DrawHealth
+[2374]        :                                       
+[2375]    1525: 61                                    popa
+[2376]        :                                       
+[2377]    1526: C3                                    ret
+[2378]        :                                       DrawStatusBar endp
+[2379]        :                                       
+[2380]        :                                       ;-----------------------------------------------------------------------------------------------------------
+[2381]        :                                       ;-----------------------------------------------------------------------------------------------------------
+[2382]    1527:                                       InLineChatSend proc
+[2383]        :                                       
+[2384]    1527: 60                                    pusha
+[2385]        :                                       
+[2386]        :                                       ;clear status bar
+[2387]        :                                       
+[2388]    1528: 60 B9 00 00 BA B5 00 B0 00 B4 0C BB   DrawWithColour 0d,181D,320D,200D,0H
+                C8 00 81 EB B5 00 8B F3 B7 00 B9 00 
+                00 B7 00 CD 10 41 81 F9 40 01 76 F5 
+                4E 42 83 FE 00 75 EB 61             
+[2389]        :                                       
+[2390]        :                                       
+[2391]        :                                       ;cursor send in bl , bh
+[2392]    1554: B1 01                                 mov cl , 1d
+[2393]    1556: B5 17                                 mov ch , 23d
+[2394]        :                                       
+[2395]        :                                       
+[2396]        :                                       ;clearing buffer
+[2397]    1558: B4 0C                                 MOV AH,0CH
+[2398]    155A: B0 00                                 MOV AL,0
+[2399]    155C: CD 21                                 INT 21H
+[2400]        :                                       
+[2401]    155E: E8 2F 01                              call Config
+[2402]        :                                       
+[2403]        :                                       
+[2404]    1561:                                       tany:
+[2405]        :                                       
+[2406]        :                                       
+[2407]    1561: B4 01                                 mov ah , 1
+[2408]    1563: CD 16                                 int 16h
+[2409]        :                                       
+[2410]        :                                       ;CLEARING BUFFER
+[2411]    1565: 50                                    push ax
+[2412]        :                                       
+[2413]        :                                       
+[2414]        :                                       
+[2415]        :                                       
+[2416]        :                                       ;move cursor
+[2417]        :                                       
+[2418]        :                                       
+[2419]        :                                       
+[2420]    1566: B7 00                                 mov bh,0
+[2421]    1568: B4 02                                 mov ah,2
+[2422]    156A: 8A D1                                 mov dl,cl
+[2423]    156C: 8A F5                                 mov dh ,ch
+[2424]    156E: CD 10                                 int 10h
+[2425]        :                                       
+[2426]        :                                       ;clearing buffer
+[2427]        :                                       
+[2428]    1570: B4 0C                                 MOV AH,0CH
+[2429]    1572: B0 00                                 MOV AL,0
+[2430]    1574: CD 21                                 INT 21H
+[2431]        :                                       
+[2432]    1576: 58                                    pop ax
+[2433]        :                                       
+[2434]    1577: 80 F9 26                              cmp cl , 38d
+[2435]    157A: 75 32                                 jnz j
+[2436]        :                                       
+[2437]    157C: B1 01                                 mov cl ,1d
+[2438]    157E: B5 17                                 mov ch ,23d
+[2439]        :                                       
+[2440]        :                                       ;clear status bar
+[2441]        :                                       
+[2442]    1580: 60 B9 00 00 BA B5 00 B0 00 B4 0C BB   DrawWithColour 0d,181D,320D,200D,0H
+                C8 00 81 EB B5 00 8B F3 B7 00 B9 00 
+                00 B7 00 CD 10 41 81 F9 40 01 76 F5 
+                4E 42 83 FE 00 75 EB 61             
+[2443]        :                                       
+[2444]    15AC: EB B3                                 jmp tany
+[2445]        :                                       
+[2446]    15AE:                                       j:
+[2447]    15AE: 80 FC 01                              cmp ah ,1
+[2448]    15B1: 74 AE                                 jz tany
+[2449]        :                                       
+[2450]    15B3: 50                                    push ax
+[2451]        :                                       
+[2452]        :                                       
+[2453]    15B4: BA FD 03                              mov dx , 3FDH		; Line Status Register
+[2454]        :                                       
+[2455]        :                                       
+[2456]    15B7:                                       AGAIN_:
+[2457]        :                                       	
+[2458]        :                                       
+[2459]    15B7: EC                                    In al , dx 			;Read Line Status
+[2460]    15B8: 24 20                                 		AND al , 00100000b
+[2461]    15BA: 74 FB                                 		JZ AGAIN_
+[2462]        :                                       		
+[2463]        :                                       ;If empty put the VALUE in Transmit data register
+[2464]    15BC: 58                                    	pop ax
+[2465]        :                                       	
+[2466]    15BD: BA F8 03                              	mov dx  , 3F8H		; Transmit data register
+[2467]    15C0: EE                                    	out dx  , al
+[2468]        :                                       	
+[2469]        :                                       	
+[2470]    15C1: 80 FC 1C                              	cmp ah ,1ch
+[2471]    15C4: 74 22                                 jz ExitInLineSend
+[2472]    15C6: 3C 08                                 cmp al , 08h ;if backspace
+[2473]    15C8: 75 13                                 jnz print_
+[2474]        :                                       
+[2475]    15CA: 80 F9 01                              cmp cl , 1d
+[2476]    15CD: 74 92                                 jz tany
+[2477]        :                                       
+[2478]        :                                       ;print it then space to clear character
+[2479]        :                                       		
+[2480]    15CF: B4 02                                 	mov ah , 2
+[2481]    15D1: 8A D0                                 mov dl , al
+[2482]    15D3: CD 21                                 int 21h
+[2483]        :                                       
+[2484]        :                                       
+[2485]        :                                       ;print space
+[2486]    15D5: B2 20                                 mov dl , 20h
+[2487]    15D7: CD 21                                 int 21h
+[2488]        :                                       
+[2489]    15D9: FE C9                                 dec cl
+[2490]    15DB: FE C9                                 dec cl
+[2491]        :                                       
+[2492]        :                                       
+[2493]        :                                       ;print
+[2494]        :                                       
+[2495]    15DD:                                       print_:
+[2496]        :                                       
+[2497]    15DD: B4 02                                 mov ah,2
+[2498]    15DF: 8A D0                                 mov dl, al
+[2499]    15E1: CD 21                                 int 21h
+[2500]    15E3: FE C1                                 inc cl
+[2501]        :                                       	
+[2502]    15E5: E9 79 FF                              	jmp tany
+[2503]        :                                       	
+[2504]        :                                       	
+[2505]        :                                       
+[2506]        :                                       
+[2507]    15E8:                                       ExitInLineSend:
+[2508]        :                                       
+[2509]    15E8: 61                                    popa
+[2510]    15E9: C3                                    ret
+[2511]        :                                       
+[2512]        :                                       InLineChatSend endp
+[2513]        :                                       ;---------------------------------------------------------------------------------------------------------
+[2514]        :                                       ;---------------------------------------------------------------------------------------------------------
+[2515]        :                                       
+[2516]    15EA:                                       InLineChatReceive proc
+[2517]        :                                       
+[2518]    15EA: 60                                    pusha
+[2519]        :                                       
+[2520]        :                                       ;clear status bar
+[2521]        :                                       
+[2522]    15EB: 60 B9 00 00 BA B5 00 B0 00 B4 0C BB   DrawWithColour 0d,181D,320D,200D,0H
+                C8 00 81 EB B5 00 8B F3 B7 00 B9 00 
+                00 B7 00 CD 10 41 81 F9 40 01 76 F5 
+                4E 42 83 FE 00 75 EB 61             
+[2523]        :                                       
+[2524]        :                                       
+[2525]        :                                       ;cursor receive in bl , bh
+[2526]    1617: B1 01                                 mov cl , 1d
+[2527]    1619: B5 17                                 mov ch , 23d
+[2528]        :                                       
+[2529]        :                                       
+[2530]    161B: E8 72 00                              call Config
+[2531]        :                                       
+[2532]        :                                       	
+[2533]    161E:                                       	receive2:
+[2534]        :                                       	
+[2535]    161E: BA FD 03                              	mov dx , 3FDH		; Line Status Register
+[2536]        :                                       	
+[2537]        :                                       		
+[2538]    1621: EC                                    	in al , dx
+[2539]    1622: 24 01                                 AND al , 1
+[2540]    1624: 74 F8                                 	JZ receive2   ;if not ready to receive go to send
+[2541]        :                                       
+[2542]        :                                       ;If Ready read the VALUE in Receive data register
+[2543]        :                                       		
+[2544]    1626: BA F8 03                              mov dx , 03F8H
+[2545]    1629: EC                                    	in al , dx
+[2546]        :                                       	
+[2547]        :                                       	
+[2548]        :                                       	
+[2549]    162A: 80 F9 26                              	cmp cl , 38d
+[2550]    162D: 75 30                                 	jnz j_:
+[2551]        :                                       	
+[2552]    162F: B1 01                                 	mov cl , 1
+[2553]    1631: B5 17                                 	mov ch , 23d
+[2554]        :                                       	
+[2555]        :                                       	;clear status bar
+[2556]    1633: 60 B9 00 00 BA B5 00 B0 00 B4 0C BB   DrawWithColour 0d,181D,320D,200D,0H
+                C8 00 81 EB B5 00 8B F3 B7 00 B9 00 
+                00 B7 00 CD 10 41 81 F9 40 01 76 F5 
+                4E 42 83 FE 00 75 EB 61             
+[2557]        :                                       	
+[2558]        :                                       	;mov cursor
+[2559]    165F:                                       	j_:
+[2560]    165F: B7 00                                 	mov bh ,0
+[2561]    1661: B4 02                                 	mov ah,2
+[2562]    1663: 8A D1                                 mov dl,cl
+[2563]    1665: 8A F5                                 mov dh ,ch
+[2564]    1667: CD 10                                 int 10h
+[2565]        :                                       
+[2566]    1669: 3C 0D                                 cmp al , 0dh
+[2567]    166B: 74 21                                 jz ExitInLineReceive
+[2568]        :                                       
+[2569]    166D: 3C 08                                 cmp al , 08h ;if backspace
+[2570]    166F: 75 13                                 jnz print2_
+[2571]        :                                       
+[2572]    1671: 80 F9 01                              cmp cl , 1d
+[2573]    1674: 74 A8                                 jz receive2
+[2574]        :                                       
+[2575]        :                                       ;print it then space to clear character
+[2576]        :                                       		
+[2577]    1676: B4 02                                 	mov ah , 2
+[2578]    1678: 8A D0                                 mov dl , al
+[2579]    167A: CD 21                                 int 21h
+[2580]        :                                       
+[2581]        :                                       
+[2582]        :                                       
+[2583]        :                                       ;print space
+[2584]    167C: B2 20                                 mov dl , 20h
+[2585]    167E: CD 21                                 int 21h
+[2586]        :                                       
+[2587]    1680: FE C9                                 dec cl
+[2588]    1682: FE C9                                 dec cl
+[2589]        :                                       
+[2590]        :                                       ;print
+[2591]        :                                       
+[2592]    1684:                                       print2_:
+[2593]        :                                       
+[2594]        :                                       	;print
+[2595]        :                                       
+[2596]    1684: B4 02                                 mov ah,2
+[2597]    1686: 8A D0                                 mov dl, al
+[2598]    1688: CD 21                                 int 21h
+[2599]    168A: FE C1                                 inc cl
+[2600]        :                                       	
+[2601]        :                                       	
+[2602]        :                                       
+[2603]    168C: EB 90                                 jmp receive2
+[2604]        :                                       
+[2605]        :                                       
+[2606]        :                                       
+[2607]        :                                       
+[2608]        :                                       
+[2609]    168E:                                       ExitInLineReceive:
+[2610]        :                                       
+[2611]    168E: 61                                    popa
+[2612]    168F: C3                                    ret
+[2613]        :                                       
+[2614]        :                                       InLineChatReceive endp
+[2615]        :                                       
+[2616]        :                                       ;----------------------------------------------------------------------------------------------------------
+[2617]        :                                       ;----------------------------------------------------------------------------------------------------------
+[2618]        :                                       
+[2619]    1690:                                       Config proc
+[2620]        :                                       
+[2621]    1690: 60                                    pusha
+[2622]        :                                       
+[2623]        :                                       ; Set Divisor Latch Access Bit
+[2624]        :                                       
+[2625]    1691: BA FB 03                              mov dx,3fbh 			; Line Control Register
+[2626]    1694: B0 80                                 mov al,10000000b		;Set Divisor Latch Access Bit
+[2627]    1696: EE                                    out dx,al			    ;Out it
+[2628]        :                                       
+[2629]        :                                       ;Set LSB byte of the Baud Rate Divisor Latch register.
+[2630]        :                                       
+[2631]    1697: BA F8 03                              mov dx,3f8h			
+[2632]    169A: B0 0C                                 mov al,0ch			
+[2633]    169C: EE                                    out dx,al
+[2634]        :                                       
+[2635]        :                                       ;Set MSB byte of the Baud Rate Divisor Latch register.
+[2636]        :                                       
+[2637]    169D: BA F9 03                              mov dx,3f9h
+[2638]    16A0: B0 00                                 mov al,00h
+[2639]    16A2: EE                                    out dx,al
+[2640]        :                                       
+[2641]        :                                       ;Set port configuration
+[2642]        :                                       
+[2643]    16A3: BA FB 03                              mov dx,3fbh
+[2644]    16A6: B0 1B                                 mov al,00011011b
+[2645]        :                                       
+[2646]    16A8: EE                                    out dx,al
+[2647]        :                                       
+[2648]    16A9: 61                                    popa
+[2649]        :                                       
+[2650]    16AA: C3                                    ret
+[2651]        :                                       
+[2652]        :                                       Config endp
+[2653]        :                                       
+[2654]        :                                       
+[2655]        :                                       END MAIN
+[2656]        :                                       
+ 
+===================================================================================================
+ 
+EXE HEADER - bytes from 0000 to 01FF inclusive.
+
+0000: 4D      -   exe signature (M)
+0001: 5A      -   exe signature (Z)
+0002: AB      -   bytes on last page (l.byte)
+0003: 00      -   bytes on last page (h.byte)
+0004: 0D      -   512 byte pages in file (l.byte)
+0005: 00      -   512 byte pages in file (h.byte)
+0006: 01      -   relocations (l.byte)
+0007: 00      -   relocations (h.byte)
+0008: 20      -   paragraphs in header (l.byte)
+0009: 00      -   paragraphs in header (h.byte)
+000A: 00      -   minimum memory (l.byte)
+000B: 00      -   minimum memory (h.byte)
+000C: FF      -   maximum memory (l.byte)
+000D: FF      -   maximum memory (h.byte)
+000E: 00      -   SS - stack segment (l.byte)
+000F: 00      -   SS - stack segment (h.byte)
+0010: 40      -   SP - stack pointer (l.byte)
+0011: 00      -   SP - stack pointer (h.byte)
+0012: 2B      -   check sum (l.byte)
+0013: 49      -   check sum (h.byte)
+0014: 00      -   IP - instruction pointer (l.byte)
+0015: 00      -   IP - instruction pointer (h.byte)
+0016: 2C      -   CS - code segment (l.byte)
+0017: 00      -   CS - code segment (h.byte)
+0018: 1E      -   relocation table adress (l.byte)
+0019: 00      -   relocation table adress (h.byte)
+001A: 00      -   overlay number (l.byte)
+001B: 00      -   overlay number (h.byte)
+001C: 01      -   signature (l.byte)
+001D: 00      -   signature (h.byte)
+001E: 01      -   relocation table - offset inside segment (l.byte)
+001F: 00      -   relocation table - offset inside segment (h.byte)
+0020: 2C      -   relocation table - segment anchor (l.byte)
+0021: 00      -   relocation table - segment anchor (h.byte)
+0022 to 01FF  -   reserved relocation area  (00) 
+
+
+
+
+===================================================================================================

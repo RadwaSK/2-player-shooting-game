@@ -26,9 +26,12 @@ InitialPl2Pos DW 0096H,00A9h,00A0H,00B3H,009BH,00A4h
 
 BlockPosX dw 10 dup(?) ;to store the positions of blocks first  row(x1 of the up_left corner,we know the width and highet ) *height
 
-CLRS1 DB 10 DUP(?)
-INITIALCLRS1   DB  0FH , 08H , 08H , 08H , 08H , 0FH , 08H , 4 , 08H , 0FH
-;CLRS2   DB  2 , 0EH , 0EH , 2 , 4 , 2 , 0EH , 4 , 0EH , 2
+CLRS1           DB  10 DUP(?)
+INITIALCLRS1    DB  0FH , 8 , 8 , 0FH , 8 , 0FH , 8 , 4 , 8 , 0FH
+CLRS21          DB  10 DUP(?)
+INITIALCLRS21   DB  0FH , 8 , 8 , 0FH , 8 , 0FH , 8 , 4 , 8 , 0FH
+CLRS22          DB  10 DUP(?)
+INITIALCLRS22   DB  8 , 0FH , 0FH , 8 , 4 , 8 , 8 , 0FH , 8 , 0FH
 
 WIDTH EQU 28
 HIGHT EQU 8 
@@ -54,6 +57,8 @@ PL2NAME DB 0DH , 19 DUP('$')
 HEART1POS DW ?
 HEART2POS DW ?
 
+SCORE1POS       DW      ?
+SCORE2POS       DW      ?
 
 PLNAME_ DB 'Your Name : $'
 
@@ -70,6 +75,12 @@ start db 'Enter: send a game invitation (:$ '
 chat db 'C: send a chatting invitation ^^$'
 exitt db   'BackSpace: exit *_*$'
 ENDText     DB  'Press any  key to return to main menu$'
+LVL2TEXT    DB  'Press any key to go to level 2$'
+DRAWTEXT    DB  'It`s a Draw!'                                              
+
+LVLNO       DB  1
+PL1SCORE    DB  ?
+PL2SCORE    DB  ?
 
 ;-----------------------------------------------------------------------------------------------------     
 .code
@@ -144,18 +155,24 @@ MainMenu:
      MOV SI , 0
      T2:
      
-       MOV AL , INITIALCLRS1[SI]
+       MOV AL, INITIALCLRS1[SI]
        MOV CLRS1[SI] , AL
+       MOV AL, INITIALCLRS21[SI]
+       MOV CLRS21[SI], AL
+       MOV AL, INITIALCLRS22[SI]
+       MOV CLRS22[SI], AL
        INC SI
      
      LOOP T2 
-     
-     
+      
+     MOV PL1SCORE, 0
+     MOV PL2SCORE, 0
      MOV Pl1Health , 3
      MOV Pl2Health , 3
      MOV SendPos, 0200H
      Mov RecPos,  0F00H
      
+     MOV LVLNO, 1
 
 GetInput:     
      ;graphicAL mode  
@@ -671,6 +688,7 @@ Shoot1:
      
      ;Draw new health of player2
      POP BX
+     ADD PL1SCORE, BL
      MOV AX, Pl2Health
      SUB AX, BX       
      MOV Pl2Health, AX
@@ -702,6 +720,7 @@ Shoot2:
      
      ;Draw new health of player1
      POP BX   ;pop the value last pushed in the stack (one if the shot hit zero if no)
+     ADD PL2SCORE, BL
      MOV AX, Pl1Health
      SUB AX, BX ;if hit then it will decrease by one       
      MOV Pl1Health, AX
@@ -727,10 +746,18 @@ WIN:
        MOV DL, 2D
        MOV DH, 10D
        INT 10H
-       
-       CMP BL, 1
-       JZ  WIN1
-       JNZ WIN2
+        
+        CMP BL,1
+        JZ WIN1
+        JNZ WIN2
+        
+       ;PUSH CX
+;       MOV CH, PL1SCORE
+;       MOV CL, PL2SCORE
+;       CMP CH, CL
+;       POP CX
+;       JZ DRAW
+;       JS WIN2
        
    WIN1:
        MOV BX, OFFSET PLLOSE
@@ -773,7 +800,9 @@ WIN:
        ADD DX, 2
        INT 21H
        
-       JMP PRESS_KEY   
+       CMP LVLNO, 1
+       JZ GOTOLVL2
+       JMP PRESS_KEY    
          
    WIN2:    
        MOV BX, OFFSET PLWON
@@ -816,7 +845,51 @@ WIN:
        ADD DX, 2
        INT 21H
        
-       JMP PRESS_KEY 
+      CMP LVLNO, 1
+       JZ GOTOLVL2
+       JMP PRESS_KEY
+       
+;DRAW:  
+;       MOV BH, 0
+;       MOV AH, 2
+;       MOV DL, 2D
+;       MOV DH, 14D
+;       INT 10H
+;         
+;       MOV BX, OFFSET DRAWTEXT
+;       PUSH BX
+;       MOV AH, 9
+;       MOV DX, BX
+;       INT 21H
+;       
+;       CMP LVLNO, 1
+;       JZ GOTOLVL2
+;       JMP PRESS_KEY
+       
+GOTOLVL2:
+     INC LVLNO
+     MOV PL1HEALTH, 3
+     MOV PL2HEALTH, 3
+        
+     ;Clear buffer
+     MOV ah,0ch
+     MOV AL,0
+     INT 21h
+     
+     ;PRESS ANY KEY TO CONTINUE
+     MOV BH, 0
+     MOV AH, 2
+     MOV DL, 2D
+     MOV DH, 16D
+     INT 10H
+     
+     MOV DX, OFFSET LVL2TEXT
+     MOV AH, 9
+     INT 21H
+     
+     CALL SendOrRec
+     JMP ST
+       
 ;--------------------------------------------------------------------    
 PRESS_KEY:
      ;Clear buffer
@@ -917,19 +990,65 @@ ShootRET2:
     INT 10H   ;draw
     
     DEC SI    ;shot is getting much closer to the player one 
+	CMP LVLNO,1
+	JNZ LVL2
 	
 	CMP SI,80D
 	JNZ KEEPMOVING
 	PUSH AX
 	MOV AX,SI
-	CALL BLOCKSHOT
+	CALL BLOCKSHOTLVL1
 	CMP SI,AX
 	POP AX
 	JNZ KEEPMOVING 
 	POP AX
 	PUSH 0
 	PUSH AX
-	RET
+	RET     
+	
+LVL2:
+    CMP SI,88
+    JNZ SECONDROW
+    PUSH AX
+    MOV AX,SI
+    CMP BL, 1
+    JNZ BLOCK2CALL
+    CALL BLOCK1SHOTLVL2
+    JMP CON
+    
+BLOCK2CALL: 
+    CALL BLOCK2SHOTLVL2
+
+CON:
+    CMP SI,AX
+    POP AX
+    JNZ SECONDROW
+    POP AX
+    PUSH 0
+    PUSH AX
+    RET
+    
+SECONDROW:
+    CMP SI, 72
+    JNZ KEEPMOVING
+    PUSH AX
+    MOV AX,SI
+    CMP BL,1
+    JNZ BLOCK1CALL
+    CALL BLOCK2SHOTLVL2
+    JMP CON2
+
+BLOCK1CALL:    
+    CALL BLOCK1SHOTLVL2
+    
+CON2:
+    CMP SI,AX
+    POP AX
+    JNZ KEEPMOVING
+    POP AX
+    PUSH 0
+    PUSH AX
+    RET
 	
 KEEPMOVING:
 	CMP SI, 0 ;check if it reached to the level the player one moves in
@@ -1001,26 +1120,62 @@ DRAW_BLOCKS PROC
      MOV CX, 5D 
      MOV DI, 0
      MOV SI,0
+     CMP LVLNO,1
+     JZ ONEROW
+     JMP TWOROWS
      
+ONEROW:
+BlocksRow:  
+       
+     MOV BlockPosX[SI],CX  ;STORING THE X COORDINATES OF EACH BLOCK    
+     MOV DX, CX
+     ADD DX, WIDTH        
+     MOV Xpoint1, CX
+     MOV Xpoint2, DX
+     DrawWithColour Xpoint1, 85D, Xpoint2, 95D, INITIALCLRS1[DI]
+     ADD CX, 31D
+     INC DI
+     ADD SI, 2
+     CMP DI, 10D
+     JNZ BlocksRow
+     JMP ENDDRAWBLOCKS
+        
+TWOROWS:
 BlocksRow1:  
        
      MOV BlockPosX[SI],CX  ;STORING THE X COORDINATES OF EACH BLOCK    
-     MOV AX, CX
-     ADD AX, WIDTH        
+     MOV DX, CX
+     ADD DX, WIDTH        
      MOV Xpoint1, CX
-     MOV Xpoint2, AX
-     DrawWithColour Xpoint1, 85D, Xpoint2, 95D, CLRS1[DI]
+     MOV Xpoint2, DX
+     DrawWithColour Xpoint1, 77D, Xpoint2, 87D, INITIALCLRS21[DI]
      ADD CX, 31D
      INC DI
-     ADD SI,2
+     ADD SI, 2
      CMP DI, 10D
      JNZ BlocksRow1
      
-     MOV DI,0D
+     MOV DI,0
+     MOV CX,5
+     MOV SI,0
+                   
+BlocksRow2:  
+       
+     MOV BlockPosX[SI],CX  ;STORING THE X COORDINATES OF EACH BLOCK    
+     MOV DX, CX
+     ADD DX, WIDTH        
+     MOV Xpoint1, CX
+     MOV Xpoint2, DX
+     DrawWithColour Xpoint1, 93D, Xpoint2, 103D, INITIALCLRS22[DI]
+     ADD CX, 31D
+     INC DI
+     ADD SI, 2
+     CMP DI, 10D
+     JNZ BlocksRow2
 
-    
+ENDDRAWBLOCKS:    
     RET
-DRAW_BLOCKS ENDP 
+DRAW_BLOCKS ENDP  
 ;====================================================================
 DrawHealth  PROC
     ;Assumption, AX = number of hearts
@@ -1086,47 +1241,47 @@ DeleteHearts:
 HealthExit: RET    
 DrawHealth  ENDP
 ;====================================================================
-BlockShot      Proc
+BlockShotLVL1      Proc
             
             PUSHA
             MOV BX,11D
             MOV DI,20D
           
             
-     CHECKNXT: 
+     CHECKNXTLVL1: 
             SUB DI,2
             DEC BX
-            JZ BLACK                    ;IF ALL BLOCKS ARE CHECKED AND NON WAS HIT, KEEP THE SHOT GOING
+            JZ BLACKLVL1                    ;IF ALL BLOCKS ARE CHECKED AND NON WAS HIT, KEEP THE SHOT GOING
             
             
             MOV DX, BLOCKPOSX[DI]       ;BLOCKPOSX IS A WORD
             CMP CX, DX                  ;CX= X OF THE SHOT
-            JS CHECKNXT                 ;IF X[SHOT]<X[BEGINNING OF THE BLOCK] CHECK THE NEXT BLOCK
+            JS CHECKNXTLVL1                 ;IF X[SHOT]<X[BEGINNING OF THE BLOCK] CHECK THE NEXT BLOCK
             ADD DX, WIDTH
             INC DX
             CMP CX, DX
-            JNS BLACK                   ;IF X[SHOT]>X[END OF THE BLOCK] KEEP THE SHOT GOING
+            JNS BLACKLVL1                   ;IF X[SHOT]>X[END OF THE BLOCK] KEEP THE SHOT GOING
             
             CMP CLRS1[BX-1], 0
-            JZ BLACK
+            JZ BLACKLVL1
             
             CMP CLRS1[BX-1], 0FH
-            JZ WHITE
+            JZ WHITELVL1
             
             CMP CLRS1[BX-1], 08H
-            JZ GREY
+            JZ GREYLVL1
             
             CMP CLRS1[BX-1], 4
-            JZ RED
-            JNZ FINISH
+            JZ REDLVL1
+            JNZ FINISHLVL1
             
             
-     BLACK: 
+     BLACKLVL1: 
             POPA
             DEC SI                   ;INCREASE THE SHOT POSITION AS A FLAG FOR KEEPING THE SHOT GOING
             RET
      
-     WHITE: 
+     WHITELVL1: 
             MOV CLRS1[BX-1], 08H       ;CHANGE THE COLOR TO GREY
             MOV CX, BlockPosX[DI]      
             MOV DX, CX
@@ -1134,9 +1289,9 @@ BlockShot      Proc
             MOV Xpoint1, CX
             MOV Xpoint2, DX
             DrawWithColour Xpoint1, 85D, Xpoint2, 95D, 08h
-            JMP ERASETHESHOT
+            JMP ERASETHESHOTLVL1
      
-     GREY:  
+     GREYLVL1:  
             MOV CLRS1[BX-1], 0         ;ERASE THE BLOCK
             MOV CX, BlockPosX[DI]      
             MOV DX, CX
@@ -1144,10 +1299,10 @@ BlockShot      Proc
             MOV Xpoint1, CX
             MOV Xpoint2, DX
             DrawWithColour Xpoint1, 85D, Xpoint2, 95D, 0
-            JMP ERASETHESHOT
+            JMP ERASETHESHOTLVL1
      
             
-     RED:
+     REDLVL1:
             MOV CLRS1[BX-1], 0        ;ERASE THE BLOCK
             MOV CX, BlockPosX[DI]      
             MOV DX, CX
@@ -1159,59 +1314,313 @@ BlockShot      Proc
             POPA
             PUSHA
             CMP BL, 1
-            JZ INCHEALTH1
-            JNZ INCHEALTH2
+            JZ INCHEALTH1LVL1
+            JNZ INCHEALTH2LVL1
                
-INCHEALTH1: 
+INCHEALTH1LVL1: 
             INC PL1HEALTH
             MOV AX, PL1HEALTH
             CALL DRAWHEALTH
-            JMP ERASETHESHOT
+            JMP ERASETHESHOTLVL1
             
             
-INCHEALTH2: 
+INCHEALTH2LVL1: 
             INC PL2HEALTH
             MOV AX, PL2HEALTH
             CALL DRAWHEALTH
             
             
-ERASETHESHOT:
+ERASETHESHOTLVL1:
             POPA
             PUSHA
             CMP BL, 1
-            JZ ERASEPL1
-            JNZ ERASEPL2
+            JZ ERASEPL1LVL1
+            JNZ ERASEPL2LVL1
                 
                 
-ERASEPL1:   
+ERASEPL1LVL1:   
             MOV BX, 4
             SUB DX, 3     ;making Y= the upper pixel coordinate 
 	        MOV AL, 0
 	        MOV AH, 0CH
-    NXTPXL1:
+    NXTPXL1LVL1:
 	        INT 10H       ;clearing it with black color
             INC DX        ;TAKING THE NEXT PIXEL
             DEC BX        
-            JNZ NXTPXL1
-            JZ FINISH
+            JNZ NXTPXL1LVL1
+            JZ FINISHLVL1
 
-ERASEPL2:   
+ERASEPL2LVL1:   
             MOV BX, 4
             ADD DX, 3     ;making Y= the upper pixel coordinate 
 	        MOV AL, 0
 	        MOV AH, 0CH
-    NXTPXL2:
+    NXTPXL2LVL1:
 	        INT 10H       ;clearing it with black color
             DEC DX        ;TAKING THE NEXT PIXEL
             DEC BX        
-            JNZ NXTPXL2
+            JNZ NXTPXL2LVL1
                             
             
-     FINISH:       
+     FINISHLVL1:       
             POPA
             
             RET
-BlockShot ENDP  
+BlockShotLVL1 ENDP  
+;===================================================================
+Block1ShotLVL2      Proc
+            
+            PUSHA
+            MOV BX,11D
+            MOV DI,20D
+          
+            
+     CHECKNXTLVL21: 
+            SUB DI,2
+            DEC BX
+            JZ BLACKLVL21                    ;IF ALL BLOCKS ARE CHECKED AND NON WAS HIT, KEEP THE SHOT GOING
+            
+            
+            MOV DX, BLOCKPOSX[DI]       ;BLOCKPOSX IS A WORD
+            CMP CX, DX                  ;CX= X OF THE SHOT
+            JS CHECKNXTLVL21                 ;IF X[SHOT]<X[BEGINNING OF THE BLOCK] CHECK THE NEXT BLOCK
+            ADD DX, WIDTH
+            INC DX
+            CMP CX, DX
+            JNS BLACKLVL21                   ;IF X[SHOT]>X[END OF THE BLOCK] KEEP THE SHOT GOING
+            
+            CMP CLRS21[BX-1], 0
+            JZ BLACKLVL21
+            
+            CMP CLRS21[BX-1], 0FH
+            JZ WHITELVL21
+            
+            CMP CLRS21[BX-1], 08H
+            JZ GREYLVL21
+            
+            CMP CLRS21[BX-1], 4
+            JZ REDLVL21
+            JNZ FINISHLVL21
+            
+                 
+     BLACKLVL21: 
+            POPA
+            DEC SI                   ;INCREASE THE SHOT POSITION AS A FLAG FOR KEEPING THE SHOT GOING
+            RET
+     
+     WHITELVL21: 
+            MOV CLRS21[BX-1], 08H       ;CHANGE THE COLOR TO GREY
+            MOV CX, BlockPosX[DI]      
+            MOV DX, CX
+            ADD DX, WIDTH        
+            MOV Xpoint1, CX
+            MOV Xpoint2, DX
+            DrawWithColour Xpoint1, 77D, Xpoint2, 87D, 08h
+            JMP ERASETHESHOTLVL21
+     
+     GREYLVL21:  
+            MOV CLRS21[BX-1], 0         ;ERASE THE BLOCK
+            MOV CX, BlockPosX[DI]      
+            MOV DX, CX
+            ADD DX, WIDTH        
+            MOV Xpoint1, CX
+            MOV Xpoint2, DX
+            DrawWithColour Xpoint1, 77D, Xpoint2, 87D, 0
+            JMP ERASETHESHOTLVL21
+     
+            
+     REDLVL21:
+            MOV CLRS21[BX-1], 0        ;ERASE THE BLOCK
+            MOV CX, BlockPosX[DI]      
+            MOV DX, CX
+            ADD DX, WIDTH       
+            MOV Xpoint1, CX
+            MOV Xpoint2, DX
+            DrawWithColour Xpoint1, 77D, Xpoint2, 87D, 0
+            
+            POPA
+            PUSHA
+            CMP BL, 1
+            JZ INCHEALTH1LVL21
+            JNZ INCHEALTH2LVL21
+                     
+INCHEALTH1LVL21: 
+            INC PL1HEALTH
+            MOV AX, PL1HEALTH
+            CALL DRAWHEALTH
+            JMP ERASETHESHOTLVL21
+            
+            
+INCHEALTH2LVL21: 
+            INC PL2HEALTH
+            MOV AX, PL2HEALTH
+            CALL DRAWHEALTH
+            
+            
+ERASETHESHOTLVL21:
+            POPA
+            PUSHA
+            CMP BL, 1
+            JZ ERASEPL1LVL21
+            JNZ ERASEPL2LVL21
+                
+                
+ERASEPL1LVL21:   
+            MOV BX, 4
+            SUB DX, 3     ;making Y= the upper pixel coordinate 
+	        MOV AL, 0
+	        MOV AH, 0CH
+    NXTPXL1LVL21:
+	        INT 10H       ;clearing it with black color
+            INC DX        ;TAKING THE NEXT PIXEL
+            DEC BX        
+            JNZ NXTPXL1LVL21
+            JZ FINISHLVL21
+
+ERASEPL2LVL21:   
+            MOV BX, 4
+            ADD DX, 3     ;making Y= the upper pixel coordinate 
+	        MOV AL, 0
+	        MOV AH, 0CH
+    NXTPXL2LVL21:
+	        INT 10H       ;clearing it with black color
+            DEC DX        ;TAKING THE NEXT PIXEL
+            DEC BX        
+            JNZ NXTPXL2LVL21
+                            
+            
+     FINISHLVL21:       
+            POPA
+            
+            RET
+Block1ShotLVL2 ENDP  
+;====================================================================
+Block2ShotLVL2      Proc
+            
+            PUSHA
+            MOV BX,11D
+            MOV DI,20D
+          
+            
+     CHECKNXTLVL22: 
+            SUB DI,2
+            DEC BX
+            JZ BLACKLVL22                    ;IF ALL BLOCKS ARE CHECKED AND NON WAS HIT, KEEP THE SHOT GOING
+            
+            
+            MOV DX, BLOCKPOSX[DI]       ;BLOCKPOSX IS A WORD
+            CMP CX, DX                  ;CX= X OF THE SHOT
+            JS CHECKNXTLVL22                 ;IF X[SHOT]<X[BEGINNING OF THE BLOCK] CHECK THE NEXT BLOCK
+            ADD DX, WIDTH
+            INC DX
+            CMP CX, DX
+            JNS BLACKLVL22                   ;IF X[SHOT]>X[END OF THE BLOCK] KEEP THE SHOT GOING
+            
+            CMP CLRS22[BX-1], 0
+            JZ BLACKLVL22
+            
+            CMP CLRS22[BX-1], 0FH
+            JZ WHITELVL22
+            
+            CMP CLRS22[BX-1], 08H
+            JZ GREYLVL22
+            
+            CMP CLRS22[BX-1], 4
+            JZ REDLVL22
+            JNZ FINISHLVL22
+            
+            
+     BLACKLVL22: 
+            POPA
+            DEC SI                   ;INCREASE THE SHOT POSITION AS A FLAG FOR KEEPING THE SHOT GOING
+            RET
+     
+     WHITELVL22: 
+            MOV CLRS22[BX-1], 08H       ;CHANGE THE COLOR TO GREY
+            MOV CX, BlockPosX[DI]      
+            MOV DX, CX
+            ADD DX, WIDTH        
+            MOV Xpoint1, CX
+            MOV Xpoint2, DX
+            DrawWithColour Xpoint1, 93D, Xpoint2, 103D, 08h
+            JMP ERASETHESHOTLVL22
+     
+     GREYLVL22:  
+            MOV CLRS22[BX-1], 0         ;ERASE THE BLOCK
+            MOV CX, BlockPosX[DI]      
+            MOV DX, CX
+            ADD DX, WIDTH        
+            MOV Xpoint1, CX
+            MOV Xpoint2, DX
+            DrawWithColour Xpoint1, 93D, Xpoint2, 103D, 0
+            JMP ERASETHESHOTLVL22
+     
+            
+     REDLVL22:
+            MOV CLRS22[BX-1], 0        ;ERASE THE BLOCK
+            MOV CX, BlockPosX[DI]      
+            MOV DX, CX
+            ADD DX, WIDTH       
+            MOV Xpoint1, CX
+            MOV Xpoint2, DX
+            DrawWithColour Xpoint1, 93D, Xpoint2, 103D, 0
+            
+            POPA
+            PUSHA
+            CMP BL, 1
+            JZ INCHEALTH1LVL22
+            JNZ INCHEALTH2LVL22
+               
+INCHEALTH1LVL22: 
+            INC PL1HEALTH
+            MOV AX, PL1HEALTH
+            CALL DRAWHEALTH
+            JMP ERASETHESHOTLVL22
+            
+            
+INCHEALTH2LVL22: 
+            INC PL2HEALTH
+            MOV AX, PL2HEALTH
+            CALL DRAWHEALTH
+            
+            
+ERASETHESHOTLVL22:
+            POPA
+            PUSHA
+            CMP BL, 1
+            JZ ERASEPL1LVL22
+            JNZ ERASEPL2LVL22
+                
+                
+ERASEPL1LVL22:   
+            MOV BX, 4
+            SUB DX, 3     ;making Y= the upper pixel coordinate 
+	        MOV AL, 0
+	        MOV AH, 0CH
+    NXTPXL1LVL22:
+	        INT 10H       ;clearing it with black color
+            INC DX        ;TAKING THE NEXT PIXEL
+            DEC BX        
+            JNZ NXTPXL1LVL22
+            JZ FINISHLVL22
+
+ERASEPL2LVL22:   
+            MOV BX, 4
+            ADD DX, 3     ;making Y= the upper pixel coordinate 
+	        MOV AL, 0
+	        MOV AH, 0CH
+    NXTPXL2LVL22:
+	        INT 10H       ;clearing it with black color
+            DEC DX        ;TAKING THE NEXT PIXEL
+            DEC BX        
+            JNZ NXTPXL2LVL22
+                            
+            
+     FINISHLVL22:       
+            POPA
+            
+            RET
+Block2ShotLVL2 ENDP
 ;====================================================================
 UserName2 PROC
      
@@ -1667,8 +2076,11 @@ chat_ proc
     jz Receive   ;if not go to receive!!!
     
     cmp ah , 4fh ;pressing end exit chat
-    jz exitchat
+    jnz notend
     
+    mov al , ah
+    
+    notend:
     mov value , al
     
     
@@ -1736,7 +2148,10 @@ chat_ proc
   	
   	mov dx  , 3F8H		; Transmit data register
   	mov  al , value
-  	out dx  , al 
+  	out dx  , al
+  	
+  	cmp value , 4fh
+  	jz exitchat 
   	
   	
   	;if reached the middle of screen scroll the top half ! 
@@ -1792,7 +2207,10 @@ chat_ proc
   		
   		mov dx , 03F8H
   		in al , dx 
-  		mov value , al
+  		mov value , al 
+  		
+  		cmp value , 4fh
+  		jz exitchat
   		
   		;check the ascii code if(between 20h - 7Eh ) the logic characters to chat
   		
@@ -1861,7 +2279,7 @@ chat_ proc
         mov al,01h
         mov bh,07h
         mov bl,0h
-        mov cx,1000h
+        mov cx,0f00h
         mov dx,184FH  
         INT 10H
      
